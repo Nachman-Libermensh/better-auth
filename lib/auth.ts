@@ -53,7 +53,11 @@ export const auth = betterAuth({
       }
 
       const path = ctx.path;
-      if (path !== "/callback/google" && path !== "/oauth2/callback/google") {
+      const isGoogleCallback =
+        path.startsWith("/callback/google") ||
+        path.startsWith("/oauth2/callback/google");
+
+      if (!isGoogleCallback) {
         return;
       }
 
@@ -134,9 +138,13 @@ export const auth = betterAuth({
         return;
       }
 
-      await ctx.context.internalAdapter.updateUser(newSession.user.id, {
-        image: profileImage,
-      });
+      await ctx.context.internalAdapter.updateUser(
+        newSession.user.id,
+        {
+          image: profileImage,
+        },
+        ctx,
+      );
 
       newSession.user.image = profileImage;
     }),
