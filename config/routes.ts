@@ -25,7 +25,7 @@ export function matchRoute(pathname: string, route: string) {
 
 export const routeConfig: RouteConfig = {
   publicRoutes: ["/login"],
-  authenticatedRoutes: ["/"],
+  authenticatedRoutes: ["/", "/account"],
   adminRoutes: ["/admin"],
   loginRoute: "/login",
   authenticatedRedirect: "/",
