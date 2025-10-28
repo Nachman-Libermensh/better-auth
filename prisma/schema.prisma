@@ -21,6 +21,7 @@ model User {
   emailVerified Boolean   @default(false)
   image         String?
   role          Role      @default(USER)
+  banned        Boolean   @default(false)
   status        UserStatus @default(ACTIVE)
   deletedAt     DateTime?
   createdAt     DateTime  @default(now())
