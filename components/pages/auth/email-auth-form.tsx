@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Lock, Mail, User } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/public/action-button";
 import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
 import {
   InputGroup,
@@ -118,13 +118,14 @@ export function EmailAuthForm({
         </FieldContent>
       </Field>
 
-      <Button
+      <ActionButton
         type="submit"
-        className="w-full rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-500 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:from-blue-500 hover:via-blue-500 hover:to-indigo-600 hover:shadow-xl disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-500"
+        className="w-full gap-2 rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-500 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:from-blue-500 hover:via-blue-500 hover:to-indigo-600 hover:shadow-xl disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-500"
         disabled={isLoading}
+        loading={isLoading}
       >
-        {isLoading ? "מעבד..." : mode === "signin" ? "התחבר" : "הירשם"}
-      </Button>
+        {mode === "signin" ? "התחבר" : "הירשם"}
+      </ActionButton>
     </form>
   );
 }
