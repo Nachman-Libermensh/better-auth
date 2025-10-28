@@ -2,6 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/format";
 import type { AdminUserRow } from "@/lib/admin-data";
@@ -21,11 +22,29 @@ export const userColumns: ColumnDef<AdminUserRow>[] = [
       );
     },
     cell: ({ row }) => {
-      const { name, email } = row.original;
+      const { name, email, image } = row.original;
+      const fallbackSource = name || email || "";
+      const initials = fallbackSource
+        .split(" ")
+        .filter(Boolean)
+        .map((part) => part[0] ?? "")
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+      const fallbackText = initials || (email?.[0] ?? "?").toUpperCase();
+
       return (
-        <div className="space-y-1">
-          <div className="font-medium">{name}</div>
-          <div className="text-muted-foreground text-xs">{email}</div>
+        <div className="flex items-center gap-3">
+          <Avatar className="size-9">
+            {image ? (
+              <AvatarImage src={image} alt={name ?? email ?? ""} />
+            ) : null}
+            <AvatarFallback>{fallbackText}</AvatarFallback>
+          </Avatar>
+          <div className="space-y-1">
+            <div className="font-medium">{name}</div>
+            <div className="text-muted-foreground text-xs">{email}</div>
+          </div>
         </div>
       );
     },

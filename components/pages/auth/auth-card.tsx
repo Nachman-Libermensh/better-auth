@@ -96,6 +96,7 @@ export function AuthCard() {
         {
           provider: "google",
           callbackURL: "/",
+          scopes: ["openid", "email", "profile"],
         },
         {
           onRequest: () => setIsLoading(true),
