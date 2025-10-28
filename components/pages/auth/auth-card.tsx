@@ -124,6 +124,7 @@ export function AuthCard() {
       </CardHeader>
       <CardContent className="space-y-6">
         <Tabs
+          dir="rtl"
           value={mode}
           onValueChange={(value) => setMode(value as AuthMode)}
           className="space-y-6"
@@ -137,7 +138,7 @@ export function AuthCard() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="signin">
+          <TabsContent dir="rtl" value="signin">
             <EmailAuthForm
               mode="signin"
               values={formValues}
