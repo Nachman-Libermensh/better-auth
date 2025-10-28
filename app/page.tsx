@@ -23,6 +23,9 @@ export default async function Home() {
           </div>
         </CardContent>
         <CardAction className="flex items-center gap-2">
+          <Button asChild variant="outline">
+            <Link href="/account">ניהול חשבון</Link>
+          </Button>
           {session?.user.role === "ADMIN" && (
             <Button asChild variant="outline">
               <Link href="/admin">כניסה לפאנל ניהול</Link>
