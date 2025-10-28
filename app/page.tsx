@@ -1,8 +1,7 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import SignOutButton from "./sign-out";
+import SignOutButton from "@/components/public/sign-out-button";
 import { redirect } from "next/navigation";
 
 export default async function Home() {
