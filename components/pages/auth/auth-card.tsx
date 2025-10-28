@@ -113,57 +113,69 @@ export function AuthCard() {
   }, []);
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="text-center">
-        <CardTitle className="text-3xl font-bold">
-          {mode === "signin" ? "כניסה" : "הרשמה"}
-        </CardTitle>
-        <CardDescription>
-          {mode === "signin" ? "התחבר לחשבון שלך" : "צור חשבון חדש"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <Tabs
-          dir="rtl"
-          value={mode}
-          onValueChange={(value) => setMode(value as AuthMode)}
-          className="space-y-6"
-        >
-          <TabsList className="w-full">
-            <TabsTrigger className="flex-1" value="signin">
-              כניסה
-            </TabsTrigger>
-            <TabsTrigger className="flex-1" value="signup">
-              הרשמה
-            </TabsTrigger>
-          </TabsList>
+    <div className="relative">
+      <div className="absolute inset-0 -z-10 rounded-3xl bg-gradient-to-br from-blue-200/40 via-white to-sky-100/60 blur-3xl" />
+      <Card className="relative overflow-hidden border border-slate-200/70 bg-white/90 shadow-2xl backdrop-blur">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-sky-400 to-indigo-500" />
+        <CardHeader className="space-y-3 text-center">
+          <CardTitle className="bg-gradient-to-r from-blue-600 via-blue-700 to-slate-900 bg-clip-text text-3xl font-bold text-transparent">
+            {mode === "signin" ? "ברוכים השבים" : "נעים להכיר"}
+          </CardTitle>
+          <CardDescription className="text-base text-slate-500">
+            {mode === "signin"
+              ? "התחברו והמשיכו מהמקום שהפסקתם"
+              : "מלאו את הפרטים והצטרפו לקהילה שלנו"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-7">
+          <Tabs
+            dir="rtl"
+            value={mode}
+            onValueChange={(value) => setMode(value as AuthMode)}
+            className="space-y-6"
+          >
+            <TabsList className="grid w-full grid-cols-2 gap-2 rounded-xl bg-slate-100/70 p-1 text-sm font-semibold text-slate-500">
+              <TabsTrigger
+                className="rounded-lg transition data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow"
+                value="signin"
+              >
+                כניסה
+              </TabsTrigger>
+              <TabsTrigger
+                className="rounded-lg transition data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow"
+                value="signup"
+              >
+                הרשמה
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent dir="rtl" value="signin">
-            <EmailAuthForm
-              mode="signin"
-              values={formValues}
-              isLoading={isLoading}
-              onChange={handleInputChange}
-              onSubmit={(event) => handleEmailAuth(event, "signin")}
-            />
-          </TabsContent>
+            <TabsContent dir="rtl" value="signin" className="space-y-6">
+              <EmailAuthForm
+                mode="signin"
+                values={formValues}
+                isLoading={isLoading}
+                onChange={handleInputChange}
+                onSubmit={(event) => handleEmailAuth(event, "signin")}
+              />
+            </TabsContent>
 
-          <TabsContent value="signup">
-            <EmailAuthForm
-              mode="signup"
-              values={formValues}
-              isLoading={isLoading}
-              onChange={handleInputChange}
-              onSubmit={(event) => handleEmailAuth(event, "signup")}
-            />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="signup" className="space-y-6">
+              <EmailAuthForm
+                mode="signup"
+                values={formValues}
+                isLoading={isLoading}
+                onChange={handleInputChange}
+                onSubmit={(event) => handleEmailAuth(event, "signup")}
+              />
+            </TabsContent>
+          </Tabs>
 
-        <SocialAuthSection
-          isLoading={isLoading}
-          onGoogleClick={handleGoogleSignIn}
-        />
-      </CardContent>
-    </Card>
+          <SocialAuthSection
+            isLoading={isLoading}
+            onGoogleClick={handleGoogleSignIn}
+          />
+        </CardContent>
+      </Card>
+    </div>
   );
 }

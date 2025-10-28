@@ -36,7 +36,9 @@ export function EmailAuthForm({
     <form onSubmit={onSubmit} className="space-y-4">
       {mode === "signup" && (
         <Field>
-          <FieldLabel htmlFor="name">שם מלא</FieldLabel>
+          <FieldLabel className="text-sm font-semibold text-slate-600" htmlFor="name">
+            שם מלא
+          </FieldLabel>
           <FieldContent>
             <InputGroup>
               <InputGroupAddon align="inline-start" className="px-1 pl-0">
@@ -60,7 +62,9 @@ export function EmailAuthForm({
       )}
 
       <Field>
-        <FieldLabel htmlFor="email">אימייל</FieldLabel>
+        <FieldLabel className="text-sm font-semibold text-slate-600" htmlFor="email">
+          אימייל
+        </FieldLabel>
         <FieldContent>
           <InputGroup>
             <InputGroupAddon align="inline-start" className="px-1 pl-0">
@@ -83,7 +87,9 @@ export function EmailAuthForm({
       </Field>
 
       <Field>
-        <FieldLabel htmlFor="password">סיסמה</FieldLabel>
+        <FieldLabel className="text-sm font-semibold text-slate-600" htmlFor="password">
+          סיסמה
+        </FieldLabel>
         <FieldContent>
           <PasswordInput
             id="password"
@@ -101,7 +107,11 @@ export function EmailAuthForm({
         </FieldContent>
       </Field>
 
-      <Button type="submit" className="w-full" disabled={isLoading}>
+      <Button
+        type="submit"
+        className="w-full rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-500 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:from-blue-500 hover:via-blue-500 hover:to-indigo-600 hover:shadow-xl disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-500"
+        disabled={isLoading}
+      >
         {isLoading
           ? "מעבד..."
           : mode === "signin"
