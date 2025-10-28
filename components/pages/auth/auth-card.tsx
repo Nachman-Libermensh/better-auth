@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 
+import { routeConfig } from "@/config/routes";
 import { authClient } from "@/lib/auth-client";
 import {
   Card,
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import useQueryParams from "@/hooks/use-query-params";
+import { sanitizeCallbackUrl } from "@/lib/utils/callback-url";
 import { EmailAuthForm, EmailAuthFormValues } from "./email-auth-form";
 import { SocialAuthSection } from "./social-auth-section";
 
@@ -23,6 +25,15 @@ type AuthMode = "signin" | "signup";
 export function AuthCard() {
   const router = useRouter();
   const { getParam, setParam } = useQueryParams();
+  const callbackParam = getParam("callbackUrl");
+  const callbackUrl = React.useMemo(
+    () =>
+      sanitizeCallbackUrl(callbackParam, {
+        defaultValue: routeConfig.authenticatedRedirect,
+        disallow: [routeConfig.loginRoute],
+      }),
+    [callbackParam]
+  );
   const [mode, setMode] = React.useState<AuthMode>("signin");
   const [isLoading, setIsLoading] = React.useState(false);
   const [formValues, setFormValues] = React.useState<EmailAuthFormValues>({
@@ -53,12 +64,12 @@ export function AuthCard() {
               email: formValues.email,
               password: formValues.password,
               name: formValues.name,
-              callbackURL: "/",
+              callbackURL: callbackUrl,
             },
             {
               onRequest: () => setIsLoading(true),
               onSuccess: () => {
-                router.push("/");
+                router.push(callbackUrl);
               },
               onError: (ctx) => {
                 toast.error(ctx.error.message);
@@ -71,13 +82,13 @@ export function AuthCard() {
             {
               email: formValues.email,
               password: formValues.password,
-              callbackURL: "/",
+              callbackURL: callbackUrl,
               rememberMe: true,
             },
             {
               onRequest: () => setIsLoading(true),
               onSuccess: () => {
-                router.push("/");
+                router.push(callbackUrl);
               },
               onError: (ctx) => {
                 toast.error(ctx.error.message);
@@ -90,7 +101,13 @@ export function AuthCard() {
         setIsLoading(false);
       }
     },
-    [formValues.email, formValues.name, formValues.password, router]
+    [
+      callbackUrl,
+      formValues.email,
+      formValues.name,
+      formValues.password,
+      router,
+    ]
   );
 
   const handleGoogleSignIn = React.useCallback(async () => {
@@ -98,7 +115,7 @@ export function AuthCard() {
       await authClient.signIn.social(
         {
           provider: "google",
-          callbackURL: "/",
+          callbackURL: callbackUrl,
         },
         {
           onRequest: () => setIsLoading(true),
@@ -113,7 +130,7 @@ export function AuthCard() {
       setIsLoading(false);
       toast.error("שגיאה בהתחברות עם Google");
     }
-  }, []);
+  }, [callbackUrl]);
 
   const queryMode = getParam("mode");
 

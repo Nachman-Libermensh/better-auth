@@ -1,12 +1,35 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { getCookieCache } from "better-auth/cookies";
-
 import { matchRoute, routeConfig } from "@/config/routes";
+import { sanitizeCallbackUrl } from "@/lib/utils/callback-url";
+
+async function getSessionFromRequest(request: NextRequest) {
+  const sessionUrl = new URL("/api/auth/get-session", request.url);
+  try {
+    const response = await fetch(sessionUrl, {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        cookie: request.headers.get("cookie") ?? "",
+      },
+      cache: "no-store",
+      credentials: "same-origin",
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to resolve session in middleware", error);
+    return null;
+  }
+}
 
 export async function middleware(request: NextRequest) {
-  const { pathname, origin } = request.nextUrl;
-  const cookieSession = await getCookieCache(request);
+  const { pathname, origin, search } = request.nextUrl;
+  const session = await getSessionFromRequest(request);
 
   const isPublicRoute = routeConfig.publicRoutes.some((route) =>
     matchRoute(pathname, route)
@@ -18,8 +41,8 @@ export async function middleware(request: NextRequest) {
     matchRoute(pathname, route)
   );
 
-  const hasSession = Boolean(cookieSession?.session && cookieSession?.user);
-  const userRole = cookieSession?.user?.role;
+  const hasSession = Boolean(session);
+  const userRole = session?.user?.role;
 
   if (!hasSession) {
     if (isPublicRoute) {
@@ -27,14 +50,27 @@ export async function middleware(request: NextRequest) {
     }
 
     if (isAdminRoute || isAuthenticatedRoute || !isPublicRoute) {
-      return NextResponse.redirect(new URL(routeConfig.loginRoute, origin));
+      const redirectUrl = new URL(routeConfig.loginRoute, origin);
+      const callbackUrl = sanitizeCallbackUrl(`${pathname}${search}`, {
+        defaultValue: routeConfig.authenticatedRedirect,
+        disallow: [routeConfig.loginRoute],
+      });
+      redirectUrl.searchParams.set("callbackUrl", callbackUrl);
+
+      return NextResponse.redirect(redirectUrl);
     }
   }
 
   if (hasSession && isPublicRoute) {
-    return NextResponse.redirect(
-      new URL(routeConfig.authenticatedRedirect, origin)
+    const callbackUrl = sanitizeCallbackUrl(
+      request.nextUrl.searchParams.get("callbackUrl"),
+      {
+        defaultValue: routeConfig.authenticatedRedirect,
+        disallow: [routeConfig.loginRoute],
+      }
     );
+
+    return NextResponse.redirect(new URL(callbackUrl, origin));
   }
 
   if (isAdminRoute && userRole !== "ADMIN") {
