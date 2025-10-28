@@ -7,11 +7,14 @@ import { auth } from "@/lib/auth";
 import { sanitizeCallbackUrl } from "@/lib/utils/callback-url";
 
 type LoginPageProps = {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function SignPage({ searchParams }: LoginPageProps) {
-  const callbackUrl = sanitizeCallbackUrl(searchParams?.callbackUrl ?? null);
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const callbackUrl = sanitizeCallbackUrl(
+    resolvedSearchParams?.callbackUrl ?? null
+  );
   const session = await auth.api.getSession({
     headers: await headers(),
   });
