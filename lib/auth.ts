@@ -44,14 +44,12 @@ export const auth = betterAuth({
                 profile.email;
 
               return {
-                user: {
-                  id: profile.sub,
-                  name,
-                  email: profile.email,
-                  image: profile.picture ?? null,
-                  emailVerified: Boolean(profile.email_verified),
-                },
-                data: profile,
+                id: profile.sub ?? profile.id ?? profile.email,
+                email: profile.email,
+                emailVerified: Boolean(profile.email_verified),
+                name,
+                image: profile.picture ?? undefined,
+                ...profile,
               };
             }
           } catch (error) {
@@ -75,14 +73,12 @@ export const auth = betterAuth({
               decoded.email;
 
             return {
-              user: {
-                id: decoded.sub,
-                name,
-                email: decoded.email,
-                image: decoded.picture ?? null,
-                emailVerified: Boolean(decoded.email_verified),
-              },
-              data: decoded,
+              id: decoded.sub ?? decoded.email ?? decoded.aud,
+              email: decoded.email,
+              emailVerified: Boolean(decoded.email_verified),
+              name,
+              image: decoded.picture ?? undefined,
+              ...decoded,
             };
           } catch (error) {
             console.error("Failed to decode Google id token", error);
