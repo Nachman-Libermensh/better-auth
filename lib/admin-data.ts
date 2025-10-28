@@ -9,6 +9,7 @@ export type AdminUserRow = {
   id: string;
   name: string;
   email: string;
+  image: string | null;
   role: UserRole;
   createdAt: string;
   lastActiveAt: string | null;
@@ -71,6 +72,7 @@ export async function getAdminUserRows(): Promise<AdminUserRow[]> {
       id: user.id,
       name: user.name,
       email: user.email,
+      image: user.image ?? null,
       role: user.role as UserRole,
       createdAt: user.createdAt.toISOString(),
       lastActiveAt: lastSession?.createdAt.toISOString() ?? null,
