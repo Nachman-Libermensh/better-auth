@@ -1,4 +1,4 @@
-import { APIError } from "better-call";
+import { APIError } from "better-auth";
 
 type SessionCreateContext = {
   path: string;
