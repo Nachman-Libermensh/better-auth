@@ -4,31 +4,7 @@ import { GalleryVerticalEnd } from "lucide-react";
 
 import { AuthCard } from "@/components/pages/auth/auth-card";
 
-type SignPageProps = {
-  searchParams?: Record<string, string | string[] | undefined>;
-};
-
-export default function SignPage({ searchParams = {} }: SignPageProps) {
-  const ctaQuery = new URLSearchParams();
-
-  for (const [key, value] of Object.entries(searchParams)) {
-    if (key === "mode" || value == null) continue;
-
-    if (Array.isArray(value)) {
-      value.forEach((entry) => {
-        if (entry != null) {
-          ctaQuery.append(key, entry);
-        }
-      });
-    } else {
-      ctaQuery.set(key, value);
-    }
-  }
-
-  ctaQuery.set("mode", "signup");
-
-  const ctaHref = `/login${ctaQuery.toString() ? `?${ctaQuery.toString()}` : ""}`;
-
+export default function SignPage() {
   return (
     <div className="grid h-dvh overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-50 via-white to-sky-50 lg:grid-cols-[1.1fr_0.9fr]">
       <div className="relative flex h-full flex-col justify-between overflow-y-auto p-6 sm:p-10 lg:overflow-y-hidden">
@@ -42,28 +18,13 @@ export default function SignPage({ searchParams = {} }: SignPageProps) {
             <span className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 text-white shadow-lg">
               <GalleryVerticalEnd className="size-4" />
             </span>
-            מרכז חרדי
+            Better Auth
           </Link>
-
-          <div className="hidden text-sm text-slate-500 md:block">
-            אין לכם חשבון?{" "}
-            <Link
-              href={ctaHref}
-              scroll={false}
-              className="font-semibold text-blue-600 underline-offset-4 hover:underline"
-            >
-              הירשמו כאן
-            </Link>
-          </div>
         </div>
 
         <div className="relative z-10 mx-auto mt-12 w-full max-w-md">
           <AuthCard />
         </div>
-
-        <footer className="relative z-10 mt-12 text-center text-xs text-slate-500">
-          © {new Date().getFullYear()} · המרכז החרדי להכשרה מקצועית
-        </footer>
       </div>
 
       <div className="relative hidden overflow-hidden lg:flex lg:flex-col">

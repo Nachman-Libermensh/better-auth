@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import useQueryParams from "@/hooks/use-query-params";
 import { EmailAuthForm, EmailAuthFormValues } from "./email-auth-form";
 import { SocialAuthSection } from "./social-auth-section";
 
@@ -20,8 +21,7 @@ type AuthMode = "signin" | "signup";
 
 export function AuthCard() {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const { getParam, setParam } = useQueryParams();
   const [mode, setMode] = React.useState<AuthMode>("signin");
   const [isLoading, setIsLoading] = React.useState(false);
   const [formValues, setFormValues] = React.useState<EmailAuthFormValues>({
@@ -29,6 +29,7 @@ export function AuthCard() {
     password: "",
     name: "",
   });
+  const pendingModeRef = React.useRef<AuthMode | null>(null);
 
   const handleInputChange = React.useCallback(
     (field: keyof EmailAuthFormValues, value: string) => {
@@ -114,47 +115,39 @@ export function AuthCard() {
     }
   }, []);
 
-  const updateQueryMode = React.useCallback(
+  const queryMode = getParam("mode");
+
+  React.useEffect(() => {
+    const normalizedMode =
+      queryMode === "signup" || queryMode === "signin"
+        ? queryMode
+        : "signin";
+
+    if (queryMode !== normalizedMode) {
+      setParam("mode", normalizedMode, { method: "replace" });
+      return;
+    }
+
+    if (pendingModeRef.current && pendingModeRef.current !== normalizedMode) {
+      return;
+    }
+
+    if (mode !== normalizedMode) {
+      setMode(normalizedMode);
+    }
+
+    pendingModeRef.current = null;
+  }, [mode, queryMode, setParam]);
+
+  const handleModeChange = React.useCallback(
     (nextMode: AuthMode) => {
       if (nextMode === mode) return;
 
       setMode(nextMode);
-
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("mode", nextMode);
-      const queryString = params.toString();
-
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
+      pendingModeRef.current = nextMode;
+      setParam("mode", nextMode, { method: "replace" });
     },
-    [mode, pathname, router, searchParams]
-  );
-
-  React.useEffect(() => {
-    const paramMode = searchParams.get("mode");
-
-    if (paramMode === "signin" || paramMode === "signup") {
-      if (paramMode !== mode) {
-        setMode(paramMode);
-      }
-      return;
-    }
-
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("mode", mode);
-    const queryString = params.toString();
-
-    router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-      scroll: false,
-    });
-  }, [mode, pathname, router, searchParams]);
-
-  const handleModeChange = React.useCallback(
-    (nextMode: AuthMode) => {
-      updateQueryMode(nextMode);
-    },
-    [updateQueryMode]
+    [mode, setParam]
   );
 
   return (
@@ -197,7 +190,7 @@ export function AuthCard() {
             <TabsContent
               dir="rtl"
               value="signin"
-              className="h-[24rem] space-y-6 overflow-y-auto data-[state=inactive]:pointer-events-none data-[state=inactive]:opacity-0 data-[state=inactive]:duration-200 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-4"
+              className="h-[24rem] space-y-6 overflow-y-auto transition-all duration-300 data-[state=inactive]:pointer-events-none data-[state=inactive]:opacity-0 data-[state=inactive]:translate-y-2 data-[state=active]:opacity-100 data-[state=active]:translate-y-0"
             >
               <EmailAuthForm
                 mode="signin"
@@ -211,7 +204,7 @@ export function AuthCard() {
             <TabsContent
               dir="rtl"
               value="signup"
-              className="h-[24rem] space-y-6 overflow-y-auto data-[state=inactive]:pointer-events-none data-[state=inactive]:opacity-0 data-[state=inactive]:duration-200 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-4"
+              className="h-[24rem] space-y-6 overflow-y-auto transition-all duration-300 data-[state=inactive]:pointer-events-none data-[state=inactive]:opacity-0 data-[state=inactive]:translate-y-2 data-[state=active]:opacity-100 data-[state=active]:translate-y-0"
             >
               <EmailAuthForm
                 mode="signup"
@@ -227,34 +220,6 @@ export function AuthCard() {
             isLoading={isLoading}
             onGoogleClick={handleGoogleSignIn}
           />
-
-          <div className="text-sm text-center text-slate-500">
-            {mode === "signin" ? (
-              <>
-                אין לכם חשבון?{" "}
-                <button
-                  type="button"
-                  disabled={isLoading}
-                  onClick={() => handleModeChange("signup")}
-                  className="font-semibold text-blue-600 underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:text-blue-300"
-                >
-                  הירשמו כאן
-                </button>
-              </>
-            ) : (
-              <>
-                כבר יש לכם חשבון?{" "}
-                <button
-                  type="button"
-                  disabled={isLoading}
-                  onClick={() => handleModeChange("signin")}
-                  className="font-semibold text-blue-600 underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:text-blue-300"
-                >
-                  התחברו כאן
-                </button>
-              </>
-            )}
-          </div>
         </CardContent>
       </Card>
     </div>
