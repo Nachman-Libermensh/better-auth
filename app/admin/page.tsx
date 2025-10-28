@@ -85,11 +85,11 @@ export default async function AdminDashboardPage() {
         <SectionCard
           title="משתמשים אחרונים"
           description="פעילות עדכנית של משתמשים והתחברויות."
-          actions={() => (
+          actions={
             <Button variant="outline" size="sm" asChild>
               <Link href="/admin/users">לכל המשתמשים</Link>
             </Button>
-          )}
+          }
           contentClassName="px-0"
           fullscreenContent={
             <UserTable
@@ -110,11 +110,11 @@ export default async function AdminDashboardPage() {
         <SectionCard
           title="סשנים פעילים"
           description="מעקב אחר סשנים שעדיין תקפים."
-          actions={() => (
+          actions={
             <Button variant="outline" size="sm" asChild>
               <Link href="/admin/sessions">לכל הסשנים</Link>
             </Button>
-          )}
+          }
           contentClassName="px-0"
           fullscreenContent={
             <SessionTable

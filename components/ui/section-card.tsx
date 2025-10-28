@@ -27,7 +27,7 @@ export type SectionCardProps = {
   title: React.ReactNode;
   description?: React.ReactNode;
   children: React.ReactNode;
-  actions?: () => React.ReactNode;
+  actions?: React.ReactNode;
   className?: string;
   contentClassName?: string;
   fullscreenContent?: React.ReactNode;
@@ -59,7 +59,7 @@ export function SectionCard({
             ) : null}
           </div>
           <div className="flex items-center gap-2">
-            {actions ? actions() : null}
+            {actions ?? null}
             <DialogTrigger asChild>
               <Button
                 type="button"
@@ -89,7 +89,7 @@ export function SectionCard({
               ) : null}
             </div>
             {actions ? (
-              <div className="flex items-center gap-2">{actions()}</div>
+              <div className="flex items-center gap-2">{actions}</div>
             ) : null}
           </div>
         </DialogHeader>
