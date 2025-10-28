@@ -4,7 +4,31 @@ import { GalleryVerticalEnd } from "lucide-react";
 
 import { AuthCard } from "@/components/pages/auth/auth-card";
 
-export default function SignPage() {
+type SignPageProps = {
+  searchParams?: Record<string, string | string[] | undefined>;
+};
+
+export default function SignPage({ searchParams = {} }: SignPageProps) {
+  const signInQuery = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (key === "mode" || value == null) continue;
+
+    if (Array.isArray(value)) {
+      value.forEach((entry) => {
+        if (entry != null) {
+          signInQuery.append(key, entry);
+        }
+      });
+    } else {
+      signInQuery.set(key, value);
+    }
+  }
+
+  signInQuery.set("mode", "signin");
+
+  const signInHref = `/login${signInQuery.toString() ? `?${signInQuery.toString()}` : ""}`;
+
   return (
     <div className="grid min-h-svh overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-50 via-white to-sky-50 lg:grid-cols-[1.1fr_0.9fr]">
       <div className="relative flex flex-col justify-between p-6 sm:p-10">
@@ -23,7 +47,13 @@ export default function SignPage() {
 
           <div className="hidden text-sm text-slate-500 md:block">
             כבר יש לכם חשבון?{" "}
-            <span className="font-semibold text-blue-600">התחברו כאן</span>
+            <Link
+              href={signInHref}
+              scroll={false}
+              className="font-semibold text-blue-600 underline-offset-4 hover:underline"
+            >
+              התחברו כאן
+            </Link>
           </div>
         </div>
 
@@ -36,7 +66,7 @@ export default function SignPage() {
         </footer>
       </div>
 
-      <div className="relative hidden overflow-hidden lg:block">
+      <div className="relative hidden overflow-hidden lg:flex lg:flex-col">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/80 via-blue-500/70 to-slate-900/90" />
         <Image
           src="/globe.svg"

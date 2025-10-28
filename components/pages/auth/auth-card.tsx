@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
@@ -20,6 +20,8 @@ type AuthMode = "signin" | "signup";
 
 export function AuthCard() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [mode, setMode] = React.useState<AuthMode>("signin");
   const [isLoading, setIsLoading] = React.useState(false);
   const [formValues, setFormValues] = React.useState<EmailAuthFormValues>({
@@ -112,10 +114,53 @@ export function AuthCard() {
     }
   }, []);
 
+  const updateQueryMode = React.useCallback(
+    (nextMode: AuthMode) => {
+      if (nextMode === mode) return;
+
+      setMode(nextMode);
+
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("mode", nextMode);
+      const queryString = params.toString();
+
+      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+        scroll: false,
+      });
+    },
+    [mode, pathname, router, searchParams]
+  );
+
+  React.useEffect(() => {
+    const paramMode = searchParams.get("mode");
+
+    if (paramMode === "signin" || paramMode === "signup") {
+      if (paramMode !== mode) {
+        setMode(paramMode);
+      }
+      return;
+    }
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("mode", mode);
+    const queryString = params.toString();
+
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      scroll: false,
+    });
+  }, [mode, pathname, router, searchParams]);
+
+  const handleModeChange = React.useCallback(
+    (nextMode: AuthMode) => {
+      updateQueryMode(nextMode);
+    },
+    [updateQueryMode]
+  );
+
   return (
     <div className="relative">
       <div className="absolute inset-0 -z-10 rounded-3xl bg-gradient-to-br from-blue-200/40 via-white to-sky-100/60 blur-3xl" />
-      <Card className="relative overflow-hidden border border-slate-200/70 bg-white/90 shadow-2xl backdrop-blur">
+      <Card className="relative overflow-hidden border border-slate-200/70 bg-white/90 shadow-2xl transition-all duration-500 backdrop-blur">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-sky-400 to-indigo-500" />
         <CardHeader className="space-y-3 text-center">
           <CardTitle className="bg-gradient-to-r from-blue-600 via-blue-700 to-slate-900 bg-clip-text text-3xl font-bold text-transparent">
@@ -127,11 +172,11 @@ export function AuthCard() {
               : "מלאו את הפרטים והצטרפו לקהילה שלנו"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-7">
+        <CardContent className="space-y-7 pb-1">
           <Tabs
             dir="rtl"
             value={mode}
-            onValueChange={(value) => setMode(value as AuthMode)}
+            onValueChange={(value) => handleModeChange(value as AuthMode)}
             className="space-y-6"
           >
             <TabsList className="grid w-full grid-cols-2 gap-2 rounded-xl bg-slate-100/70 p-1 text-sm font-semibold text-slate-500">
@@ -149,7 +194,11 @@ export function AuthCard() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent dir="rtl" value="signin" className="space-y-6">
+            <TabsContent
+              dir="rtl"
+              value="signin"
+              className="min-h-[18rem] space-y-6 data-[state=inactive]:pointer-events-none data-[state=inactive]:opacity-0 data-[state=inactive]:duration-200 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-4"
+            >
               <EmailAuthForm
                 mode="signin"
                 values={formValues}
@@ -159,7 +208,10 @@ export function AuthCard() {
               />
             </TabsContent>
 
-            <TabsContent value="signup" className="space-y-6">
+            <TabsContent
+              value="signup"
+              className="min-h-[18rem] space-y-6 data-[state=inactive]:pointer-events-none data-[state=inactive]:opacity-0 data-[state=inactive]:duration-200 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-4"
+            >
               <EmailAuthForm
                 mode="signup"
                 values={formValues}
@@ -174,6 +226,34 @@ export function AuthCard() {
             isLoading={isLoading}
             onGoogleClick={handleGoogleSignIn}
           />
+
+          <div className="text-sm text-center text-slate-500">
+            {mode === "signin" ? (
+              <>
+                אין לכם חשבון?{" "}
+                <button
+                  type="button"
+                  disabled={isLoading}
+                  onClick={() => handleModeChange("signup")}
+                  className="font-semibold text-blue-600 underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:text-blue-300"
+                >
+                  הירשמו כאן
+                </button>
+              </>
+            ) : (
+              <>
+                כבר יש לכם חשבון?{" "}
+                <button
+                  type="button"
+                  disabled={isLoading}
+                  onClick={() => handleModeChange("signin")}
+                  className="font-semibold text-blue-600 underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:text-blue-300"
+                >
+                  התחברו כאן
+                </button>
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
