@@ -9,6 +9,7 @@ export type AdminUserRow = {
   id: string;
   name: string;
   email: string;
+  image: string | null;
   role: UserRole;
   status: UserStatus;
   createdAt: string;
@@ -27,6 +28,7 @@ export type AdminSessionRow = {
   userId: string;
   userName: string;
   userEmail: string;
+  userImage: string | null;
   status: SessionStatus;
   ipAddress: string | null;
   userAgent: string | null;
@@ -78,6 +80,7 @@ export async function getAdminUserRows(): Promise<AdminUserRow[]> {
       id: user.id,
       name: user.name,
       email: user.email,
+      image: user.image,
       role: user.role as UserRole,
       status,
       createdAt: user.createdAt.toISOString(),
@@ -112,6 +115,7 @@ export async function getAdminSessionRows(): Promise<AdminSessionRow[]> {
       userId: session.userId,
       userName: session.user?.name ?? "",
       userEmail: session.user?.email ?? "",
+      userImage: session.user?.image ?? null,
       status,
       ipAddress: session.ipAddress ?? null,
       userAgent: session.userAgent ?? null,

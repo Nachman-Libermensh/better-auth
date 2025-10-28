@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/format";
 import type { AdminSessionRow } from "@/lib/admin-data";
 
+import { UserIdentity } from "./user-identity";
+
 const formatDuration = (row: AdminSessionRow) => {
   const createdAt = new Date(row.createdAt);
   const expiresAt = new Date(row.expiresAt);
@@ -39,12 +41,13 @@ export const sessionColumns: ColumnDef<AdminSessionRow>[] = [
       );
     },
     cell: ({ row }) => {
-      const { userName, userEmail } = row.original;
+      const { userName, userEmail, userImage } = row.original;
       return (
-        <div className="space-y-1">
-          <div className="font-medium">{userName || "—"}</div>
-          <div className="text-muted-foreground text-xs">{userEmail}</div>
-        </div>
+        <UserIdentity
+          name={userName || null}
+          email={userEmail || null}
+          image={userImage}
+        />
       );
     },
   },

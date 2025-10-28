@@ -7,6 +7,7 @@ import { formatDateTime } from "@/lib/format";
 import type { AdminUserRow } from "@/lib/admin-data";
 
 import { UserRowActions } from "./user-row-actions";
+import { UserIdentity } from "./user-identity";
 
 export const userColumns: ColumnDef<AdminUserRow>[] = [
   {
@@ -21,13 +22,8 @@ export const userColumns: ColumnDef<AdminUserRow>[] = [
       );
     },
     cell: ({ row }) => {
-      const { name, email } = row.original;
-      return (
-        <div className="space-y-1">
-          <div className="font-medium">{name}</div>
-          <div className="text-muted-foreground text-xs">{email}</div>
-        </div>
-      );
+      const { name, email, image } = row.original;
+      return <UserIdentity name={name} email={email} image={image} />;
     },
   },
   {
