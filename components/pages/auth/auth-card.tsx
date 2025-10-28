@@ -158,7 +158,7 @@ export function AuthCard() {
   );
 
   return (
-    <div className="relative">
+    <div className="relative animate-in fade-in-0 slide-in-from-bottom-6 duration-500">
       <div className="absolute inset-0 -z-10 rounded-3xl bg-gradient-to-br from-blue-200/40 via-white to-sky-100/60 blur-3xl" />
       <Card className="relative overflow-hidden border border-slate-200/70 bg-white/90 shadow-2xl transition-all duration-500 backdrop-blur">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-sky-400 to-indigo-500" />
@@ -172,7 +172,7 @@ export function AuthCard() {
               : "מלאו את הפרטים והצטרפו לקהילה שלנו"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-7 pb-1">
+        <CardContent className="space-y-7 pb-6">
           <Tabs
             dir="rtl"
             value={mode}
@@ -197,7 +197,7 @@ export function AuthCard() {
             <TabsContent
               dir="rtl"
               value="signin"
-              className="min-h-[18rem] space-y-6 data-[state=inactive]:pointer-events-none data-[state=inactive]:opacity-0 data-[state=inactive]:duration-200 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-4"
+              className="h-[24rem] space-y-6 overflow-y-auto data-[state=inactive]:pointer-events-none data-[state=inactive]:opacity-0 data-[state=inactive]:duration-200 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-4"
             >
               <EmailAuthForm
                 mode="signin"
@@ -209,8 +209,9 @@ export function AuthCard() {
             </TabsContent>
 
             <TabsContent
+              dir="rtl"
               value="signup"
-              className="min-h-[18rem] space-y-6 data-[state=inactive]:pointer-events-none data-[state=inactive]:opacity-0 data-[state=inactive]:duration-200 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-4"
+              className="h-[24rem] space-y-6 overflow-y-auto data-[state=inactive]:pointer-events-none data-[state=inactive]:opacity-0 data-[state=inactive]:duration-200 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-4"
             >
               <EmailAuthForm
                 mode="signup"

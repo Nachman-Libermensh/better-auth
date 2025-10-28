@@ -9,7 +9,7 @@ type SignPageProps = {
 };
 
 export default function SignPage({ searchParams = {} }: SignPageProps) {
-  const signInQuery = new URLSearchParams();
+  const ctaQuery = new URLSearchParams();
 
   for (const [key, value] of Object.entries(searchParams)) {
     if (key === "mode" || value == null) continue;
@@ -17,21 +17,21 @@ export default function SignPage({ searchParams = {} }: SignPageProps) {
     if (Array.isArray(value)) {
       value.forEach((entry) => {
         if (entry != null) {
-          signInQuery.append(key, entry);
+          ctaQuery.append(key, entry);
         }
       });
     } else {
-      signInQuery.set(key, value);
+      ctaQuery.set(key, value);
     }
   }
 
-  signInQuery.set("mode", "signin");
+  ctaQuery.set("mode", "signup");
 
-  const signInHref = `/login${signInQuery.toString() ? `?${signInQuery.toString()}` : ""}`;
+  const ctaHref = `/login${ctaQuery.toString() ? `?${ctaQuery.toString()}` : ""}`;
 
   return (
-    <div className="grid min-h-svh overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-50 via-white to-sky-50 lg:grid-cols-[1.1fr_0.9fr]">
-      <div className="relative flex flex-col justify-between p-6 sm:p-10">
+    <div className="grid h-dvh overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-50 via-white to-sky-50 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="relative flex h-full flex-col justify-between overflow-y-auto p-6 sm:p-10 lg:overflow-y-hidden">
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,_rgba(15,118,220,0.08)_1px,transparent_1px),linear-gradient(to_bottom,_rgba(15,118,220,0.08)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(circle_at_center,_white_55%,_transparent_100%)]" />
 
         <div className="relative z-10 flex items-center justify-between">
@@ -46,13 +46,13 @@ export default function SignPage({ searchParams = {} }: SignPageProps) {
           </Link>
 
           <div className="hidden text-sm text-slate-500 md:block">
-            כבר יש לכם חשבון?{" "}
+            אין לכם חשבון?{" "}
             <Link
-              href={signInHref}
+              href={ctaHref}
               scroll={false}
               className="font-semibold text-blue-600 underline-offset-4 hover:underline"
             >
-              התחברו כאן
+              הירשמו כאן
             </Link>
           </div>
         </div>

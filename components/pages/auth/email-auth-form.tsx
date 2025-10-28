@@ -35,7 +35,10 @@ export function EmailAuthForm({
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {mode === "signup" && (
-        <Field>
+        <Field
+          className="animate-in fade-in-0 slide-in-from-bottom-4 duration-500"
+          style={{ animationDelay: "0ms" }}
+        >
           <FieldLabel className="text-sm font-semibold text-slate-600" htmlFor="name">
             שם מלא
           </FieldLabel>
@@ -61,7 +64,10 @@ export function EmailAuthForm({
         </Field>
       )}
 
-      <Field>
+      <Field
+        className="animate-in fade-in-0 slide-in-from-bottom-4 duration-500"
+        style={{ animationDelay: mode === "signup" ? "120ms" : "0ms" }}
+      >
         <FieldLabel className="text-sm font-semibold text-slate-600" htmlFor="email">
           אימייל
         </FieldLabel>
@@ -86,7 +92,10 @@ export function EmailAuthForm({
         </FieldContent>
       </Field>
 
-      <Field>
+      <Field
+        className="animate-in fade-in-0 slide-in-from-bottom-4 duration-500"
+        style={{ animationDelay: mode === "signup" ? "240ms" : "120ms" }}
+      >
         <FieldLabel className="text-sm font-semibold text-slate-600" htmlFor="password">
           סיסמה
         </FieldLabel>
@@ -109,7 +118,8 @@ export function EmailAuthForm({
 
       <Button
         type="submit"
-        className="w-full rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-500 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:from-blue-500 hover:via-blue-500 hover:to-indigo-600 hover:shadow-xl disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-500"
+        className="animate-in fade-in-0 slide-in-from-bottom-4 duration-500 w-full rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-500 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:from-blue-500 hover:via-blue-500 hover:to-indigo-600 hover:shadow-xl disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-500"
+        style={{ animationDelay: mode === "signup" ? "360ms" : "240ms" }}
         disabled={isLoading}
       >
         {isLoading
