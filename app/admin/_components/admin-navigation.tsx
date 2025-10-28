@@ -12,9 +12,12 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
+import type { LucideIcon } from "lucide-react";
+
 export type AdminNavItem = {
   href: string;
   label: string;
+  icon: LucideIcon;
 };
 
 export function AdminNavigation({ items }: { items: AdminNavItem[] }) {
@@ -35,7 +38,15 @@ export function AdminNavigation({ items }: { items: AdminNavItem[] }) {
                   isActive={isActive}
                   className="justify-end text-right"
                 >
-                  <Link href={item.href}>{item.label}</Link>
+                  <Link
+                    href={item.href}
+                    className="flex w-full items-center gap-3"
+                  >
+                    <item.icon className="order-1 size-4" />
+                    <span className="order-2 flex-1 text-right">
+                      {item.label}
+                    </span>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             );
