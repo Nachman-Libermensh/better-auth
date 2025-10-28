@@ -20,8 +20,13 @@ model User {
   email         String
   emailVerified Boolean   @default(false)
   image         String?
-  role          Role      @default(USER)
-  banned        Boolean   @default(false)
+  role          Role       @default(USER)
+  /// Required by the Better Auth admin plugin to track user bans.
+  banned        Boolean    @default(false)
+  /// Optional administrative context for user bans.
+  banReason     String?
+  /// Timestamp for when a temporary ban should expire.
+  banExpires    DateTime?
   status        UserStatus @default(ACTIVE)
   deletedAt     DateTime?
   createdAt     DateTime  @default(now())
