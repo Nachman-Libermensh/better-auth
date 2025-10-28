@@ -119,9 +119,7 @@ export function AuthCard() {
 
   React.useEffect(() => {
     const normalizedMode =
-      queryMode === "signup" || queryMode === "signin"
-        ? queryMode
-        : "signin";
+      queryMode === "signup" || queryMode === "signin" ? queryMode : "signin";
 
     if (queryMode !== normalizedMode) {
       setParam("mode", normalizedMode, { method: "replace" });
@@ -190,7 +188,7 @@ export function AuthCard() {
             <TabsContent
               dir="rtl"
               value="signin"
-              className="h-[24rem] space-y-6 overflow-y-auto transition-all duration-300 data-[state=inactive]:pointer-events-none data-[state=inactive]:opacity-0 data-[state=inactive]:translate-y-2 data-[state=active]:opacity-100 data-[state=active]:translate-y-0"
+              className="h-[24rem] space-y-6 overflow-hidden transition-all duration-300 data-[state=inactive]:pointer-events-none data-[state=inactive]:opacity-0 data-[state=inactive]:translate-y-2 data-[state=active]:opacity-100 data-[state=active]:translate-y-0"
             >
               <EmailAuthForm
                 mode="signin"
@@ -204,7 +202,7 @@ export function AuthCard() {
             <TabsContent
               dir="rtl"
               value="signup"
-              className="h-[24rem] space-y-6 overflow-y-auto transition-all duration-300 data-[state=inactive]:pointer-events-none data-[state=inactive]:opacity-0 data-[state=inactive]:translate-y-2 data-[state=active]:opacity-100 data-[state=active]:translate-y-0"
+              className="h-[24rem] space-y-6 overflow-hidden transition-all duration-300 data-[state=inactive]:pointer-events-none data-[state=inactive]:opacity-0 data-[state=inactive]:translate-y-2 data-[state=active]:opacity-100 data-[state=active]:translate-y-0"
             >
               <EmailAuthForm
                 mode="signup"

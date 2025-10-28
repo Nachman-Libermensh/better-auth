@@ -6,21 +6,9 @@ import { AuthCard } from "@/components/pages/auth/auth-card";
 
 export default function SignPage() {
   return (
-    <div className="grid h-dvh overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-50 via-white to-sky-50 lg:grid-cols-[1.1fr_0.9fr]">
-      <div className="relative flex h-full flex-col justify-between overflow-y-auto p-6 sm:p-10 lg:overflow-y-hidden">
+    <div className="grid h-dvh overflow-hidden bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-slate-50 via-white to-sky-50 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="relative flex h-full flex-col justify-between px-6 py-3 sm:px-7 sm:py-4 overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,_rgba(15,118,220,0.08)_1px,transparent_1px),linear-gradient(to_bottom,_rgba(15,118,220,0.08)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(circle_at_center,_white_55%,_transparent_100%)]" />
-
-        <div className="relative z-10 flex items-center justify-between">
-          <Link
-            href="/"
-            className="flex items-center gap-3 rounded-full border border-slate-200/80 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm backdrop-blur transition hover:border-blue-200 hover:text-blue-600"
-          >
-            <span className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 text-white shadow-lg">
-              <GalleryVerticalEnd className="size-4" />
-            </span>
-            Better Auth
-          </Link>
-        </div>
 
         <div className="relative z-10 mx-auto mt-12 w-full max-w-md">
           <AuthCard />
@@ -45,7 +33,8 @@ export default function SignPage() {
               חוויית התחברות נעימה, מאובטחת ומהירה
             </h2>
             <p className="text-sm text-slate-200/80 sm:text-base">
-              התחברו למערכת מכל מקום ובכל זמן, עם תצוגה חדשה שמדגישה את הבטיחות והפשטות של תהליך ההזדהות.
+              התחברו למערכת מכל מקום ובכל זמן, עם תצוגה חדשה שמדגישה את הבטיחות
+              והפשטות של תהליך ההזדהות.
             </p>
           </div>
 
