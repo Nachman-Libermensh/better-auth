@@ -91,12 +91,21 @@ export function AuthCard() {
   );
 
   const handleGoogleSignIn = React.useCallback(async () => {
-    setIsLoading(true);
     try {
-      await authClient.signIn.social({
-        provider: "google",
-        callbackURL: "/",
-      });
+      await authClient.signIn.social(
+        {
+          provider: "google",
+          callbackURL: "/",
+        },
+        {
+          onRequest: () => setIsLoading(true),
+          onSuccess: () => setIsLoading(false),
+          onError: (ctx) => {
+            toast.error(ctx.error.message);
+            setIsLoading(false);
+          },
+        }
+      );
     } catch {
       setIsLoading(false);
       toast.error("שגיאה בהתחברות עם Google");

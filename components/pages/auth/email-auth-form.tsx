@@ -9,6 +9,7 @@ import {
   InputGroupInput,
   InputGroupText,
 } from "@/components/ui/input-group";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export type EmailAuthFormValues = {
   email: string;
@@ -51,6 +52,7 @@ export function EmailAuthForm({
                 onChange={(event) => onChange("name", event.target.value)}
                 required
                 disabled={isLoading}
+                autoComplete="name"
               />
             </InputGroup>
           </FieldContent>
@@ -74,6 +76,7 @@ export function EmailAuthForm({
               onChange={(event) => onChange("email", event.target.value)}
               required
               disabled={isLoading}
+              autoComplete="email"
             />
           </InputGroup>
         </FieldContent>
@@ -82,23 +85,19 @@ export function EmailAuthForm({
       <Field>
         <FieldLabel htmlFor="password">סיסמה</FieldLabel>
         <FieldContent>
-          <InputGroup>
-            <InputGroupAddon align="inline-start" className="px-1 pl-0">
-              <InputGroupText>
-                <Lock className="size-4" />
-              </InputGroupText>
-            </InputGroupAddon>
-            <InputGroupInput
-              id="password"
-              type="password"
-              placeholder="סיסמה"
-              value={values.password}
-              onChange={(event) => onChange("password", event.target.value)}
-              required
-              minLength={8}
-              disabled={isLoading}
-            />
-          </InputGroup>
+          <PasswordInput
+            id="password"
+            placeholder="סיסמה"
+            value={values.password}
+            onChange={(event) => onChange("password", event.target.value)}
+            required
+            minLength={8}
+            disabled={isLoading}
+            icon={<Lock className="size-4" />}
+            iconPosition="inline-start"
+            togglePosition="inline-start"
+            autoComplete={mode === "signup" ? "new-password" : "current-password"}
+          />
         </FieldContent>
       </Field>
 
