@@ -5,7 +5,7 @@ import { getCookieCache } from "better-auth/cookies";
 import { matchRoute, routeConfig } from "@/config/routes";
 
 export async function middleware(request: NextRequest) {
-  const { pathname, origin } = request.nextUrl;
+  const { pathname, origin, search } = request.nextUrl;
   const cookieSession = await getCookieCache(request);
 
   const isPublicRoute = routeConfig.publicRoutes.some((route) =>
@@ -27,7 +27,11 @@ export async function middleware(request: NextRequest) {
     }
 
     if (isAdminRoute || isAuthenticatedRoute || !isPublicRoute) {
-      return NextResponse.redirect(new URL(routeConfig.loginRoute, origin));
+      const redirectUrl = new URL(routeConfig.loginRoute, origin);
+      const callbackUrl = `${pathname}${search}`;
+      redirectUrl.searchParams.set("callbackUrl", callbackUrl);
+
+      return NextResponse.redirect(redirectUrl);
     }
   }
 
