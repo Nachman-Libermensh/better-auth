@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import useQueryParams from "@/hooks/use-query-params";
+import { sanitizeCallbackUrl } from "@/lib/utils/callback-url";
 import { EmailAuthForm, EmailAuthFormValues } from "./email-auth-form";
 import { SocialAuthSection } from "./social-auth-section";
 
@@ -24,13 +25,10 @@ export function AuthCard() {
   const router = useRouter();
   const { getParam, setParam } = useQueryParams();
   const callbackParam = getParam("callbackUrl");
-  const callbackUrl = React.useMemo(() => {
-    if (!callbackParam) return "/";
-    if (!callbackParam.startsWith("/") || callbackParam.startsWith("//")) {
-      return "/";
-    }
-    return callbackParam;
-  }, [callbackParam]);
+  const callbackUrl = React.useMemo(
+    () => sanitizeCallbackUrl(callbackParam),
+    [callbackParam]
+  );
   const [mode, setMode] = React.useState<AuthMode>("signin");
   const [isLoading, setIsLoading] = React.useState(false);
   const [formValues, setFormValues] = React.useState<EmailAuthFormValues>({

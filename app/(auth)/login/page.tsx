@@ -1,8 +1,25 @@
 import Image from "next/image";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { AuthCard } from "@/components/pages/auth/auth-card";
+import { auth } from "@/lib/auth";
+import { sanitizeCallbackUrl } from "@/lib/utils/callback-url";
 
-export default function SignPage() {
+type LoginPageProps = {
+  searchParams?: Record<string, string | string[] | undefined>;
+};
+
+export default async function SignPage({ searchParams }: LoginPageProps) {
+  const callbackUrl = sanitizeCallbackUrl(searchParams?.callbackUrl ?? null);
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (session) {
+    redirect(callbackUrl);
+  }
+
   return (
     <div className="grid min-h-dvh overflow-hidden bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-slate-50 via-white to-sky-50 lg:grid-cols-[1.1fr_0.9fr]">
       <div className="relative flex h-full flex-col justify-between px-6 py-3 sm:px-7 sm:py-4 overflow-hidden">
