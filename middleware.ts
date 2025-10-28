@@ -4,10 +4,14 @@ import { matchRoute, routeConfig } from "@/config/routes";
 import { auth } from "@/lib/auth";
 import { sanitizeCallbackUrl } from "@/lib/utils/callback-url";
 
+function getRequestHeaders(request: NextRequest) {
+  return Object.fromEntries(request.headers.entries());
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname, origin, search } = request.nextUrl;
   const session = await auth.api.getSession({
-    headers: request.headers,
+    headers: getRequestHeaders(request),
   });
 
   const isPublicRoute = routeConfig.publicRoutes.some((route) =>
