@@ -1,12 +1,10 @@
 import Image from "next/image";
-import Link from "next/link";
-import { GalleryVerticalEnd } from "lucide-react";
 
 import { AuthCard } from "@/components/pages/auth/auth-card";
 
 export default function SignPage() {
   return (
-    <div className="grid h-dvh overflow-hidden bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-slate-50 via-white to-sky-50 lg:grid-cols-[1.1fr_0.9fr]">
+    <div className="grid min-h-dvh overflow-hidden bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-slate-50 via-white to-sky-50 lg:grid-cols-[1.1fr_0.9fr]">
       <div className="relative flex h-full flex-col justify-between px-6 py-3 sm:px-7 sm:py-4 overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,_rgba(15,118,220,0.08)_1px,transparent_1px),linear-gradient(to_bottom,_rgba(15,118,220,0.08)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(circle_at_center,_white_55%,_transparent_100%)]" />
 
@@ -16,15 +14,17 @@ export default function SignPage() {
       </div>
 
       <div className="relative hidden overflow-hidden lg:flex lg:flex-col">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/80 via-blue-500/70 to-slate-900/90" />
-        <Image
-          src="/globe.svg"
-          alt="רקע חיבור"
-          fill
-          className="object-cover opacity-50"
-          priority
-        />
-        <div className="relative z-10 flex h-full flex-col justify-between p-10 text-white">
+        <div className="absolute inset-0 z-10 bg-gradient-to-br from-blue-600/80 via-blue-500/70 to-slate-900/90" />
+        <div className="absolute inset-0">
+          <Image
+            src="/globe.svg"
+            alt="רקע חיבור"
+            fill
+            className="object-cover opacity-50"
+            priority
+          />
+        </div>
+        <div className="relative z-20 flex h-full flex-col justify-between p-10 text-white">
           <div className="space-y-4">
             <span className="inline-flex items-center rounded-full bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-slate-100">
               Welcome Back
