@@ -1,13 +1,14 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { getCookieCache } from "better-auth/cookies";
-
 import { matchRoute, routeConfig } from "@/config/routes";
+import { auth } from "@/lib/auth";
 import { sanitizeCallbackUrl } from "@/lib/utils/callback-url";
 
 export async function middleware(request: NextRequest) {
   const { pathname, origin, search } = request.nextUrl;
-  const cookieSession = await getCookieCache(request);
+  const session = await auth.api.getSession({
+    headers: request.headers,
+  });
 
   const isPublicRoute = routeConfig.publicRoutes.some((route) =>
     matchRoute(pathname, route)
@@ -19,8 +20,8 @@ export async function middleware(request: NextRequest) {
     matchRoute(pathname, route)
   );
 
-  const hasSession = Boolean(cookieSession?.session && cookieSession?.user);
-  const userRole = cookieSession?.user?.role;
+  const hasSession = Boolean(session);
+  const userRole = session?.user?.role;
 
   if (!hasSession) {
     if (isPublicRoute) {
