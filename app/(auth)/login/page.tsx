@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { AuthCard } from "@/components/pages/auth/auth-card";
+import { routeConfig } from "@/config/routes";
 import { auth } from "@/lib/auth";
 import { sanitizeCallbackUrl } from "@/lib/utils/callback-url";
 
@@ -13,7 +14,11 @@ type LoginPageProps = {
 export default async function SignPage({ searchParams }: LoginPageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const callbackUrl = sanitizeCallbackUrl(
-    resolvedSearchParams?.callbackUrl ?? null
+    resolvedSearchParams?.callbackUrl ?? null,
+    {
+      defaultValue: routeConfig.authenticatedRedirect,
+      disallow: [routeConfig.loginRoute],
+    }
   );
   const session = await auth.api.getSession({
     headers: await headers(),

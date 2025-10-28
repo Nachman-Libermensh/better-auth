@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 
+import { routeConfig } from "@/config/routes";
 import { authClient } from "@/lib/auth-client";
 import {
   Card,
@@ -26,7 +27,11 @@ export function AuthCard() {
   const { getParam, setParam } = useQueryParams();
   const callbackParam = getParam("callbackUrl");
   const callbackUrl = React.useMemo(
-    () => sanitizeCallbackUrl(callbackParam),
+    () =>
+      sanitizeCallbackUrl(callbackParam, {
+        defaultValue: routeConfig.authenticatedRedirect,
+        disallow: [routeConfig.loginRoute],
+      }),
     [callbackParam]
   );
   const [mode, setMode] = React.useState<AuthMode>("signin");

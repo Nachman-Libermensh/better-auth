@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCookieCache } from "better-auth/cookies";
 
 import { matchRoute, routeConfig } from "@/config/routes";
+import { sanitizeCallbackUrl } from "@/lib/utils/callback-url";
 
 export async function middleware(request: NextRequest) {
   const { pathname, origin, search } = request.nextUrl;
@@ -28,7 +29,10 @@ export async function middleware(request: NextRequest) {
 
     if (isAdminRoute || isAuthenticatedRoute || !isPublicRoute) {
       const redirectUrl = new URL(routeConfig.loginRoute, origin);
-      const callbackUrl = `${pathname}${search}`;
+      const callbackUrl = sanitizeCallbackUrl(`${pathname}${search}`, {
+        defaultValue: routeConfig.authenticatedRedirect,
+        disallow: [routeConfig.loginRoute],
+      });
       redirectUrl.searchParams.set("callbackUrl", callbackUrl);
 
       return NextResponse.redirect(redirectUrl);
@@ -36,9 +40,15 @@ export async function middleware(request: NextRequest) {
   }
 
   if (hasSession && isPublicRoute) {
-    return NextResponse.redirect(
-      new URL(routeConfig.authenticatedRedirect, origin)
+    const callbackUrl = sanitizeCallbackUrl(
+      request.nextUrl.searchParams.get("callbackUrl"),
+      {
+        defaultValue: routeConfig.authenticatedRedirect,
+        disallow: [routeConfig.loginRoute],
+      }
     );
+
+    return NextResponse.redirect(new URL(callbackUrl, origin));
   }
 
   if (isAdminRoute && userRole !== "ADMIN") {
