@@ -95,7 +95,7 @@ export function EmailAuthForm({
             disabled={isLoading}
             icon={<Lock className="size-4" />}
             iconPosition="inline-start"
-            togglePosition="inline-start"
+            togglePosition="inline-end"
             autoComplete={mode === "signup" ? "new-password" : "current-password"}
           />
         </FieldContent>
