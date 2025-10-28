@@ -2,6 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 
+import { UserAvatar } from "@/components/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/format";
 import type { AdminUserRow } from "@/lib/admin-data";
@@ -21,11 +22,20 @@ export const userColumns: ColumnDef<AdminUserRow>[] = [
       );
     },
     cell: ({ row }) => {
-      const { name, email } = row.original;
+      const { name, email, image } = row.original;
       return (
-        <div className="space-y-1">
-          <div className="font-medium">{name}</div>
-          <div className="text-muted-foreground text-xs">{email}</div>
+        <div className="flex items-center gap-3">
+          <UserAvatar
+            name={name}
+            email={email}
+            image={image}
+            className="size-10"
+            fallbackClassName="text-sm"
+          />
+          <div className="space-y-1">
+            <div className="font-medium">{name}</div>
+            <div className="text-muted-foreground text-xs">{email}</div>
+          </div>
         </div>
       );
     },
