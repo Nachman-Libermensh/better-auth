@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 
 import SignOutButton from "@/components/public/sign-out-button";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +16,7 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { auth } from "@/lib/auth";
+import { requireAdminUser } from "@/lib/auth-guards";
 
 import {
   AdminNavigation,
@@ -36,17 +34,7 @@ export default async function AdminLayout({
 }: {
   children: ReactNode;
 }) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    redirect("/login");
-  }
-
-  if (session.user?.role !== "ADMIN") {
-    redirect("/");
-  }
+  const session = await requireAdminUser();
 
   return (
     <SidebarProvider dir="rtl" className="bg-muted/30">
