@@ -33,6 +33,7 @@ export type DataTableProps<TData, TValue> = {
   className?: string;
   emptyMessage?: string;
   scrollAreaClassName?: string;
+  direction?: "ltr" | "rtl";
 };
 
 export function DataTable<TData, TValue>({
@@ -43,6 +44,7 @@ export function DataTable<TData, TValue>({
   className,
   emptyMessage = "לא נמצאו נתונים.",
   scrollAreaClassName,
+  direction = "rtl",
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -66,7 +68,7 @@ export function DataTable<TData, TValue>({
   const searchColumn = searchKey ? table.getColumn(searchKey) : null;
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-4", className)} dir={direction}>
       {searchColumn ? (
         <Input
           value={(searchColumn.getFilterValue() as string) ?? ""}
@@ -74,20 +76,40 @@ export function DataTable<TData, TValue>({
             searchColumn.setFilterValue(event.target.value)
           }
           placeholder={searchPlaceholder ?? "חיפוש"}
-          className="max-w-sm"
+          className={cn(
+            "max-w-sm",
+            direction === "rtl" && "text-right placeholder:text-right"
+          )}
+          dir={direction}
         />
       ) : null}
 
       <div className="rounded-md border bg-background">
-        <ScrollArea className={cn("w-full", scrollAreaClassName)}>
+        <ScrollArea
+          className={cn("w-full", scrollAreaClassName)}
+          dir={direction}
+        >
           <div className="min-w-full">
-            <Table>
-              <TableHeader>
+            <Table
+              className={cn(
+                "min-w-full",
+                direction === "rtl" && "[&_td]:text-right [&_th]:text-right"
+              )}
+            >
+              <TableHeader className="sticky top-0 z-20 bg-background">
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
+                  <TableRow key={headerGroup.id} className="bg-background">
                     {headerGroup.headers.map((header) => {
                       return (
-                        <TableHead key={header.id}>
+                        <TableHead
+                          key={header.id}
+                          className={cn(
+                            "sticky top-0 bg-background/95 text-sm font-medium",
+                            direction === "rtl"
+                              ? "text-right"
+                              : "text-left"
+                          )}
+                        >
                           {header.isPlaceholder
                             ? null
                             : flexRender(
@@ -108,7 +130,12 @@ export function DataTable<TData, TValue>({
                       data-state={row.getIsSelected() && "selected"}
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
+                        <TableCell
+                          key={cell.id}
+                          className={cn(
+                            direction === "rtl" ? "text-right" : "text-left"
+                          )}
+                        >
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()
@@ -119,7 +146,10 @@ export function DataTable<TData, TValue>({
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                    <TableCell
+                      colSpan={columns.length}
+                      className="h-24 text-center"
+                    >
                       {emptyMessage}
                     </TableCell>
                   </TableRow>

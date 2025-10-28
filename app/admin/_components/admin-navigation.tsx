@@ -21,8 +21,8 @@ export function AdminNavigation({ items }: { items: AdminNavItem[] }) {
   const pathname = usePathname();
 
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel>ניהול</SidebarGroupLabel>
+    <SidebarGroup className="items-end text-right">
+      <SidebarGroupLabel className="w-full text-right">ניהול</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => {
@@ -30,7 +30,11 @@ export function AdminNavigation({ items }: { items: AdminNavItem[] }) {
 
             return (
               <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton asChild isActive={isActive}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive}
+                  className="justify-end text-right"
+                >
                   <Link href={item.href}>{item.label}</Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

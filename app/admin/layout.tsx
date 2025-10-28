@@ -46,10 +46,10 @@ export default async function AdminLayout({
   }
 
   return (
-    <SidebarProvider>
-      <div className="bg-muted/30 flex min-h-screen w-full">
-        <Sidebar className="border-r">
-          <SidebarHeader className="border-b px-4 py-5">
+    <SidebarProvider dir="rtl">
+      <div className="bg-muted/30 flex min-h-screen w-full flex-row-reverse">
+        <Sidebar side="right" className="border-l">
+          <SidebarHeader className="border-b px-4 py-5 text-right">
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">מחובר כאדמין</p>
               <div className="font-semibold">{session.user?.name}</div>
@@ -58,10 +58,10 @@ export default async function AdminLayout({
               </p>
             </div>
           </SidebarHeader>
-          <SidebarContent>
+          <SidebarContent className="text-right">
             <AdminNavigation items={navigation} />
           </SidebarContent>
-          <SidebarFooter className="border-t px-4 py-4">
+          <SidebarFooter className="border-t px-4 py-4 text-right">
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
@@ -74,7 +74,7 @@ export default async function AdminLayout({
         </Sidebar>
         <SidebarInset>
           <header className="border-b bg-background">
-            <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
+            <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6" dir="rtl">
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="md:hidden" />
                 <div>

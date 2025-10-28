@@ -48,8 +48,8 @@ export function SectionCard({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Card className={cn("flex h-full flex-col", className)}>
-        <CardHeader className="flex flex-col gap-4 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+      <Card className={cn("flex h-full flex-col overflow-hidden", className)} dir="rtl">
+        <CardHeader className="sticky top-0 z-20 flex flex-col gap-4 space-y-0 border-b bg-card/95 px-6 py-4 text-right backdrop-blur sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <CardTitle className="text-base sm:text-lg">{title}</CardTitle>
             {description ? (
@@ -73,13 +73,20 @@ export function SectionCard({
             </DialogTrigger>
           </div>
         </CardHeader>
-        <CardContent className={cn("flex-1 space-y-4", contentClassName)}>
-          {children}
+        <CardContent className="flex-1 p-0">
+          <ScrollArea className="h-full" dir="rtl">
+            <div className={cn("space-y-4 px-6 py-4", contentClassName)}>
+              {children}
+            </div>
+          </ScrollArea>
         </CardContent>
       </Card>
-      <DialogContent className="max-w-[95vw] border-0 bg-background p-0 sm:max-w-[90vw]">
-        <DialogHeader className="border-b px-6 py-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <DialogContent
+        dir="rtl"
+        className="max-w-[95vw] border-0 bg-background p-0 sm:max-w-[90vw]"
+      >
+        <DialogHeader className="sticky top-0 z-30 border-b bg-background/95 px-6 py-4 text-right backdrop-blur">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <DialogTitle className="text-lg sm:text-xl">{title}</DialogTitle>
               {description ? (
@@ -93,8 +100,10 @@ export function SectionCard({
             ) : null}
           </div>
         </DialogHeader>
-        <ScrollArea className="h-[80vh]">
-          <div className={cn("px-6 py-6", fullscreenContentClassName)}>
+        <ScrollArea className="h-[80vh]" dir="rtl">
+          <div
+            className={cn("space-y-4 px-6 py-6", fullscreenContentClassName)}
+          >
             {fullscreenContent ?? children}
           </div>
         </ScrollArea>
