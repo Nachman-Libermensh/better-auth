@@ -1,8 +1,20 @@
 import { APIError } from "better-auth";
+import type { BetterAuthPlugin } from "better-auth";
+
+type SessionRecord = {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  userId: string;
+  expiresAt: Date;
+  token: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+} & Record<string, unknown>;
 
 type SessionCreateContext = {
   path: string;
-  redirect: (url: string) => never;
+  redirect: (url: string) => unknown;
   context: {
     baseURL: string;
     options: {
@@ -11,9 +23,7 @@ type SessionCreateContext = {
       };
     };
     internalAdapter: {
-      findUserById: (
-        userId: string
-      ) => Promise<
+      findUserById: (userId: string) => Promise<
         | (Record<string, unknown> & {
             status?: string | null;
             deletedAt?: Date | string | null;
@@ -22,10 +32,6 @@ type SessionCreateContext = {
       >;
     };
   };
-};
-
-type SessionRecord = {
-  userId: string;
 };
 
 const inactiveUserMessage =
@@ -40,7 +46,7 @@ function createRedirectError(ctx: SessionCreateContext) {
   );
 }
 
-export function userStatusGuard() {
+export function userStatusGuard(): BetterAuthPlugin {
   return {
     id: "user-status-guard",
     init() {
@@ -49,7 +55,10 @@ export function userStatusGuard() {
           databaseHooks: {
             session: {
               create: {
-                async before(session: SessionRecord, ctx?: SessionCreateContext) {
+                async before(
+                  session: SessionRecord,
+                  ctx?: SessionCreateContext
+                ) {
                   if (!ctx) {
                     return;
                   }
