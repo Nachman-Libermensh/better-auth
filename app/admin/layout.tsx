@@ -3,8 +3,6 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { LayoutDashboard, Users2, Clock3 } from "lucide-react";
-
 import SignOutButton from "@/components/public/sign-out-button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -22,12 +20,15 @@ import {
 } from "@/components/ui/sidebar";
 import { auth } from "@/lib/auth";
 
-import { AdminNavigation, type AdminNavItem } from "./_components/admin-navigation";
+import {
+  AdminNavigation,
+  type AdminNavItem,
+} from "./_components/admin-navigation";
 
 const navigation: AdminNavItem[] = [
-  { href: "/admin", label: "דשבורד", icon: LayoutDashboard },
-  { href: "/admin/users", label: "משתמשים", icon: Users2 },
-  { href: "/admin/sessions", label: "סשנים", icon: Clock3 },
+  { href: "/admin", label: "דשבורד", icon: "dashboard" },
+  { href: "/admin/users", label: "משתמשים", icon: "users" },
+  { href: "/admin/sessions", label: "סשנים", icon: "sessions" },
 ];
 
 export default async function AdminLayout({

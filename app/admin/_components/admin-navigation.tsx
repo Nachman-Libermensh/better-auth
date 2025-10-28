@@ -12,12 +12,25 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-import type { LucideIcon } from "lucide-react";
+import {
+  Clock3,
+  LayoutDashboard,
+  Users2,
+  type LucideIcon,
+} from "lucide-react";
+
+const ICON_MAP = {
+  dashboard: LayoutDashboard,
+  users: Users2,
+  sessions: Clock3,
+} satisfies Record<string, LucideIcon>;
+
+export type AdminNavIcon = keyof typeof ICON_MAP;
 
 export type AdminNavItem = {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: AdminNavIcon;
 };
 
 export function AdminNavigation({ items }: { items: AdminNavItem[] }) {
@@ -30,6 +43,7 @@ export function AdminNavigation({ items }: { items: AdminNavItem[] }) {
         <SidebarMenu>
           {items.map((item) => {
             const isActive = pathname === item.href;
+            const Icon = ICON_MAP[item.icon] ?? LayoutDashboard;
 
             return (
               <SidebarMenuItem key={item.href}>
@@ -42,7 +56,7 @@ export function AdminNavigation({ items }: { items: AdminNavItem[] }) {
                     href={item.href}
                     className="flex w-full items-center gap-3"
                   >
-                    <item.icon className="order-1 size-4" />
+                    <Icon className="order-1 size-4" />
                     <span className="order-2 flex-1 text-right">
                       {item.label}
                     </span>
