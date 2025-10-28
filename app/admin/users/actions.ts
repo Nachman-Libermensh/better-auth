@@ -46,11 +46,33 @@ async function requireAdminSession() {
     headers: requestHeaders,
   });
 
-  if (!session || session.user?.role !== "ADMIN") {
+  if (!session || session.user?.role !== "ADMIN" || !session.user?.id) {
     throw new Error("לא הותרה גישה לפעולה זו");
   }
 
   return { session, headers: requestHeaders };
+}
+
+async function ensureCanDisableTarget(
+  currentAdminId: string,
+  targetUserId: string
+) {
+  if (currentAdminId === targetUserId) {
+    throw new Error("לא ניתן לחסום את עצמך");
+  }
+
+  const targetUser = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: { role: true },
+  });
+
+  if (!targetUser) {
+    throw new Error("המשתמש המבוקש לא נמצא");
+  }
+
+  if (targetUser.role === "ADMIN") {
+    throw new Error("לא ניתן לחסום מנהלי מערכת אחרים");
+  }
 }
 
 async function refreshAdminData() {
@@ -145,7 +167,7 @@ export async function softDeleteUserAction(
   input: z.infer<typeof userIdSchema>
 ): Promise<AdminActionResult> {
   try {
-    await requireAdminSession();
+    const { session } = await requireAdminSession();
     const parsed = userIdSchema.safeParse(input);
 
     if (!parsed.success) {
@@ -154,6 +176,8 @@ export async function softDeleteUserAction(
         error: "מזהה המשתמש אינו תקין",
       };
     }
+
+    await ensureCanDisableTarget(session.user.id, parsed.data.userId);
 
     await prisma.$transaction([
       prisma.session.deleteMany({
@@ -232,7 +256,7 @@ export async function updateUserStatusAction(
   input: z.infer<typeof updateStatusSchema>
 ): Promise<AdminActionResult> {
   try {
-    await requireAdminSession();
+    const { session } = await requireAdminSession();
     const parsed = updateStatusSchema.safeParse(input);
 
     if (!parsed.success) {
@@ -240,6 +264,10 @@ export async function updateUserStatusAction(
         success: false,
         error: "הנתונים שסופקו אינם תקינים",
       };
+    }
+
+    if (parsed.data.status === "INACTIVE") {
+      await ensureCanDisableTarget(session.user.id, parsed.data.userId);
     }
 
     await prisma.user.update({

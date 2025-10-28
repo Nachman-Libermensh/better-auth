@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { admin } from "better-auth/plugins/admin";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./prisma";
+import { userStatusGuard } from "./plugins/user-status-guard";
 // If your Prisma file is located elsewhere, you can change the path
 
 export const auth = betterAuth({
@@ -48,5 +49,6 @@ export const auth = betterAuth({
       adminRoles: ["ADMIN"],
       defaultRole: "USER",
     }),
+    userStatusGuard(),
   ],
 });
