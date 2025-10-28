@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/format";
 import type { AdminUserRow } from "@/lib/admin-data";
 
+import { UserRowActions } from "./user-row-actions";
+
 export const userColumns: ColumnDef<AdminUserRow>[] = [
   {
     accessorKey: "name",
@@ -36,6 +38,35 @@ export const userColumns: ColumnDef<AdminUserRow>[] = [
       const variant = role === "ADMIN" ? "default" : "secondary";
       const label = role === "ADMIN" ? "מנהל" : "משתמש";
       return <Badge variant={variant}>{label}</Badge>;
+    },
+  },
+  {
+    id: "accountStatus",
+    header: "מצב חשבון",
+    cell: ({ row }) => {
+      if (row.original.isDeleted) {
+        return <Badge variant="destructive">נמחק</Badge>;
+      }
+
+      const isInactive = row.original.status === "INACTIVE";
+      return (
+        <Badge variant={isInactive ? "outline" : "default"}>
+          {isInactive ? "לא פעיל" : "פעיל"}
+        </Badge>
+      );
+    },
+    sortingFn: (a, b) => {
+      const aWeight = a.original.isDeleted
+        ? 0
+        : a.original.status === "ACTIVE"
+        ? 2
+        : 1;
+      const bWeight = b.original.isDeleted
+        ? 0
+        : b.original.status === "ACTIVE"
+        ? 2
+        : 1;
+      return bWeight - aWeight;
     },
   },
   {
@@ -73,5 +104,16 @@ export const userColumns: ColumnDef<AdminUserRow>[] = [
     accessorKey: "lastActiveAt",
     header: "פעילות אחרונה",
     cell: ({ row }) => formatDateTime(row.original.lastActiveAt),
+  },
+  {
+    id: "actions",
+    header: "",
+    cell: ({ row }) => (
+      <div className="flex justify-end">
+        <UserRowActions user={row.original} />
+      </div>
+    ),
+    enableSorting: false,
+    enableHiding: false,
   },
 ];

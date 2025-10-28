@@ -1,7 +1,7 @@
 import { differenceInDays } from "date-fns";
 
 import { prisma } from "./prisma";
-import type { Role } from "./prisma";
+import type { Role, UserStatus } from "./prisma";
 
 export type UserRole = Role;
 
@@ -10,10 +10,13 @@ export type AdminUserRow = {
   name: string;
   email: string;
   role: UserRole;
+  status: UserStatus;
   createdAt: string;
   lastActiveAt: string | null;
   activeSessions: number;
   totalSessions: number;
+  deletedAt: string | null;
+  isDeleted: boolean;
 };
 
 export type SessionStatus = "ACTIVE" | "EXPIRED";
@@ -66,16 +69,23 @@ export async function getAdminUserRows(): Promise<AdminUserRow[]> {
       (session) => session.expiresAt > now
     );
     const lastSession = user.sessions[0] ?? null;
+    const status = ((user as unknown as { status?: UserStatus }).status ??
+      "ACTIVE") as UserStatus;
+    const deletedAt = (user as unknown as { deletedAt?: Date | null })
+      .deletedAt;
 
     return {
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role as UserRole,
+      status,
       createdAt: user.createdAt.toISOString(),
       lastActiveAt: lastSession?.createdAt.toISOString() ?? null,
       activeSessions: activeSessions.length,
       totalSessions: user.sessions.length,
+      deletedAt: deletedAt ? deletedAt.toISOString() : null,
+      isDeleted: Boolean(deletedAt),
     };
   });
 }
@@ -128,16 +138,37 @@ export async function getAdminOverview(): Promise<AdminOverview> {
   );
   const expiredSessions = sessions.length - activeSessions.length;
   const activeUserIds = new Set(activeSessions.map((session) => session.userId));
-  const totalUsers = users.length;
-  const activeUsers = activeUserIds.size;
-  const inactiveUsers = Math.max(totalUsers - activeUsers, 0);
-  const recentSignups = users.filter(
+  const nonDeletedUsers = users.filter((user) => {
+    const deletedAt = (user as unknown as { deletedAt?: Date | null })
+      .deletedAt;
+    return !deletedAt;
+  });
+  const totalUsers = nonDeletedUsers.length;
+  const activeUsers = nonDeletedUsers.filter((user) => {
+    const status = ((user as unknown as { status?: UserStatus }).status ??
+      "ACTIVE") as UserStatus;
+    return status === "ACTIVE" && activeUserIds.has(user.id);
+  }).length;
+  const inactiveByStatus = nonDeletedUsers.filter((user) => {
+    const status = ((user as unknown as { status?: UserStatus }).status ??
+      "ACTIVE") as UserStatus;
+    return status === "INACTIVE";
+  }).length;
+  const inactiveBySessions = nonDeletedUsers.filter((user) => {
+    const status = ((user as unknown as { status?: UserStatus }).status ??
+      "ACTIVE") as UserStatus;
+    return status === "ACTIVE" && !activeUserIds.has(user.id);
+  }).length;
+  const inactiveUsers = inactiveByStatus + inactiveBySessions;
+  const recentSignups = nonDeletedUsers.filter(
     (user) => differenceInDays(now, user.createdAt) <= 7
   ).length;
   const averageSessionsPerUser =
     totalUsers === 0 ? 0 : Number((sessions.length / totalUsers).toFixed(2));
 
-  const adminUsers = users.filter((user) => user.role === "ADMIN").length;
+  const adminUsers = nonDeletedUsers.filter(
+    (user) => user.role === "ADMIN"
+  ).length;
   const regularUsers = totalUsers - adminUsers;
 
   return {

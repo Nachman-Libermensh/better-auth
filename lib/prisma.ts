@@ -11,3 +11,5 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 export type { Prisma, Role } from "./generated/prisma/client";
+
+export type UserStatus = "ACTIVE" | "INACTIVE";
