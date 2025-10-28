@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/ui/section-card";
 import { Separator } from "@/components/ui/separator";
 import {
   getAdminOverview,
@@ -49,79 +49,119 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <Card key={metric.label}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {metric.label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="text-3xl font-semibold">{metric.value}</div>
-              <p className="text-muted-foreground text-xs">{metric.helper}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-2">
-        <Card className="flex flex-col">
-          <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
-            <div>
-              <CardTitle className="text-base">משתמשים אחרונים</CardTitle>
-              <p className="text-muted-foreground text-sm">
-                פעילות עדכנית של משתמשים והתחברויות.
-              </p>
+      <SectionCard
+        title="מדדים עיקריים"
+        description="מעקב אחר מגמות פעילות משתמשים וסשנים אחרונים."
+        fullscreenContent={
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {metrics.map((metric) => (
+              <div
+                key={metric.label}
+                className="rounded-lg border bg-card p-4 shadow-sm"
+              >
+                <p className="text-sm text-muted-foreground">{metric.label}</p>
+                <p className="text-3xl font-semibold">{metric.value}</p>
+                <p className="text-xs text-muted-foreground">{metric.helper}</p>
+              </div>
+            ))}
+          </div>
+        }
+      >
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {metrics.map((metric) => (
+            <div
+              key={metric.label}
+              className="rounded-lg border bg-card p-4 shadow-sm"
+            >
+              <p className="text-sm text-muted-foreground">{metric.label}</p>
+              <p className="text-3xl font-semibold">{metric.value}</p>
+              <p className="text-xs text-muted-foreground">{metric.helper}</p>
             </div>
+          ))}
+        </div>
+      </SectionCard>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SectionCard
+          title="משתמשים אחרונים"
+          description="פעילות עדכנית של משתמשים והתחברויות."
+          actions={() => (
             <Button variant="outline" size="sm" asChild>
               <Link href="/admin/users">לכל המשתמשים</Link>
             </Button>
-          </CardHeader>
-          <CardContent className="flex-1 space-y-4">
-            <UserTable data={recentUsers} enableSearch={false} />
-          </CardContent>
-        </Card>
+          )}
+          contentClassName="px-0"
+          fullscreenContent={
+            <UserTable
+              data={recentUsers}
+              enableSearch={false}
+              scrollAreaClassName="h-[70vh]"
+            />
+          }
+        >
+          <UserTable
+            data={recentUsers}
+            enableSearch={false}
+            className="px-4"
+            scrollAreaClassName="max-h-[320px]"
+          />
+        </SectionCard>
 
-        <Card className="flex flex-col">
-          <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
-            <div>
-              <CardTitle className="text-base">סשנים פעילים</CardTitle>
-              <p className="text-muted-foreground text-sm">
-                מעקב אחר סשנים שעדיין תקפים.
-              </p>
-            </div>
+        <SectionCard
+          title="סשנים פעילים"
+          description="מעקב אחר סשנים שעדיין תקפים."
+          actions={() => (
             <Button variant="outline" size="sm" asChild>
               <Link href="/admin/sessions">לכל הסשנים</Link>
             </Button>
-          </CardHeader>
-          <CardContent className="flex-1 space-y-4">
-            <SessionTable data={activeSessions} enableSearch={false} />
-          </CardContent>
-        </Card>
-      </section>
+          )}
+          contentClassName="px-0"
+          fullscreenContent={
+            <SessionTable
+              data={activeSessions}
+              enableSearch={false}
+              scrollAreaClassName="h-[70vh]"
+            />
+          }
+        >
+          <SessionTable
+            data={activeSessions}
+            enableSearch={false}
+            className="px-4"
+            scrollAreaClassName="max-h-[320px]"
+          />
+        </SectionCard>
+      </div>
 
       <Separator />
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">כל המשתמשים</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <UserTable data={users} />
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SectionCard
+          title="כל המשתמשים"
+          description="רשימת המשתמשים המלאה עם אפשרויות חיפוש וסינון."
+          contentClassName="px-0"
+          fullscreenContent={
+            <UserTable data={users} scrollAreaClassName="h-[70vh]" />
+          }
+        >
+          <UserTable data={users} className="px-4" scrollAreaClassName="max-h-[360px]" />
+        </SectionCard>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">כל הסשנים</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <SessionTable data={sessions} />
-          </CardContent>
-        </Card>
-      </section>
+        <SectionCard
+          title="כל הסשנים"
+          description="מעקב אחר סטטוס הסשנים ומידע על המכשירים."
+          contentClassName="px-0"
+          fullscreenContent={
+            <SessionTable data={sessions} scrollAreaClassName="h-[70vh]" />
+          }
+        >
+          <SessionTable
+            data={sessions}
+            className="px-4"
+            scrollAreaClassName="max-h-[360px]"
+          />
+        </SectionCard>
+      </div>
     </div>
   );
 }

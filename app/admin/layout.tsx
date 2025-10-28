@@ -5,9 +5,21 @@ import { redirect } from "next/navigation";
 
 import SignOutButton from "@/components/public/sign-out-button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { auth } from "@/lib/auth";
+
 import { AdminNavigation } from "./_components/admin-navigation";
 
 const navigation = [
@@ -34,50 +46,57 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-muted/20">
-      <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div>
-            <h1 className="text-xl font-semibold">פאנל ניהול</h1>
-            <p className="text-muted-foreground text-sm">
-              ניהול משתמשים, סשנים ופעילות בזמן אמת.
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div className="font-medium">{session.user?.name}</div>
-              <div className="text-muted-foreground text-sm">
+    <SidebarProvider>
+      <div className="bg-muted/30 flex min-h-screen w-full">
+        <Sidebar className="border-r">
+          <SidebarHeader className="border-b px-4 py-5">
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">מחובר כאדמין</p>
+              <div className="font-semibold">{session.user?.name}</div>
+              <p className="text-xs text-muted-foreground">
                 {session.user?.email}
-              </div>
+              </p>
             </div>
-            <Badge variant="outline">מנהל</Badge>
-            <SignOutButton variant="outline" />
+          </SidebarHeader>
+          <SidebarContent>
+            <AdminNavigation items={navigation} />
+          </SidebarContent>
+          <SidebarFooter className="border-t px-4 py-4">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link href="/">חזרה לאתר</Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+            <SignOutButton variant="outline" className="mt-4 w-full" />
+          </SidebarFooter>
+        </Sidebar>
+        <SidebarInset>
+          <header className="border-b bg-background">
+            <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger className="md:hidden" />
+                <div>
+                  <h1 className="text-lg font-semibold">פאנל ניהול</h1>
+                  <p className="text-muted-foreground text-sm">
+                    ניהול משתמשים, סשנים ופעילות בזמן אמת.
+                  </p>
+                </div>
+              </div>
+              <Badge variant="outline" className="px-3 py-1 text-xs">
+                מנהל
+              </Badge>
+            </div>
+          </header>
+          <div className="flex-1 overflow-y-auto">
+            <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
+              {children}
+            </div>
           </div>
-        </div>
-      </header>
-      <div className="mx-auto grid min-h-[calc(100vh-80px)] max-w-7xl gap-6 px-6 py-8 lg:grid-cols-[220px_1fr]">
-        <aside>
-          <Card className="sticky top-20">
-            <CardContent className="space-y-2 p-4">
-              <div className="text-muted-foreground text-sm">תפריט</div>
-              <Separator />
-              <AdminNavigation items={navigation} />
-              <Separator />
-              <nav className="space-y-1">
-                <Link
-                  href="/"
-                  className="hover:bg-muted/60 flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors"
-                >
-                  חזרה לאתר
-                </Link>
-              </nav>
-            </CardContent>
-          </Card>
-        </aside>
-        <main>
-          <div className="space-y-6 pb-12">{children}</div>
-        </main>
+        </SidebarInset>
+        <SidebarRail />
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

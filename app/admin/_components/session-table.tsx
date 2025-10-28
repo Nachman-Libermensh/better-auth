@@ -8,9 +8,13 @@ import { sessionColumns } from "./session-columns";
 export function SessionTable({
   data,
   enableSearch = true,
+  className,
+  scrollAreaClassName,
 }: {
   data: AdminSessionRow[];
   enableSearch?: boolean;
+  className?: string;
+  scrollAreaClassName?: string;
 }) {
   return (
     <DataTable
@@ -18,8 +22,10 @@ export function SessionTable({
       data={data}
       searchKey={enableSearch ? "userName" : undefined}
       searchPlaceholder={
-        enableSearch ? "חיפוש לפי שם משתמש" : undefined
+        enableSearch ? "חיפוש לפי משתמש או סטטוס" : undefined
       }
+      className={className}
+      scrollAreaClassName={scrollAreaClassName}
     />
   );
 }

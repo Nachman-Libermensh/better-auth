@@ -8,9 +8,13 @@ import { userColumns } from "./user-columns";
 export function UserTable({
   data,
   enableSearch = true,
+  className,
+  scrollAreaClassName,
 }: {
   data: AdminUserRow[];
   enableSearch?: boolean;
+  className?: string;
+  scrollAreaClassName?: string;
 }) {
   return (
     <DataTable
@@ -20,6 +24,8 @@ export function UserTable({
       searchPlaceholder={
         enableSearch ? "חיפוש לפי שם או אימייל" : undefined
       }
+      className={className}
+      scrollAreaClassName={scrollAreaClassName}
     />
   );
 }
