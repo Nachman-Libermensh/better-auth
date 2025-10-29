@@ -28,13 +28,13 @@ export default async function AccountPage() {
     <div className="container mx-auto flex min-h-dvh max-w-2xl items-center justify-center px-4 py-10">
       <Card className="w-full" dir="rtl">
         <CardHeader className="text-right">
-          <CardTitle>הגדרת סיסמה לחשבון</CardTitle>
-          <CardDescription className="space-y-1 text-sm">
-            {userName ? <p>שלום {userName}.</p> : null}
+          <CardTitle>שינוי סיסמה</CardTitle>
+          <CardDescription className="text-sm">
+            {userName ? <span>שלום {userName}, </span> : null}
             {userEmail ? (
-              <p>החשבון המשויך לכתובת {userEmail} יכול להוסיף כאן סיסמה.</p>
+              <span>כאן תוכלו לעדכן את הסיסמה לחשבון המשויך לכתובת {userEmail}.</span>
             ) : (
-              <p>כאן תוכלו להוסיף סיסמה לחשבון המחובר.</p>
+              <span>כאן תוכלו לעדכן את סיסמת החשבון המחובר.</span>
             )}
           </CardDescription>
         </CardHeader>

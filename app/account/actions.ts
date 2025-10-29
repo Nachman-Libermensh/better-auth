@@ -40,7 +40,7 @@ export async function setPasswordAction(
 
     return {
       success: true,
-      message: "הסיסמה הוגדרה בהצלחה. מעתה תוכלו להתחבר גם באמצעות אימייל וסיסמה.",
+      message: "הסיסמה עודכנה בהצלחה. מעתה תוכלו להתחבר גם באמצעות אימייל וסיסמה.",
     };
   } catch (error) {
     const message =
@@ -54,9 +54,7 @@ export async function setPasswordAction(
 
     return {
       success: false,
-      error: alreadyHasPassword
-        ? "לחשבונכם כבר מוגדרת סיסמה ואינכם צריכים להגדיר חדשה."
-        : message,
+      error: message,
       alreadyHasPassword,
     };
   }

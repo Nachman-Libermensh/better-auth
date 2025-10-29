@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/public/action-button";
 import {
   Form,
   FormControl,
@@ -36,7 +36,6 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function SetPasswordForm() {
   const [feedback, setFeedback] = useState<FeedbackState>(null);
-  const [hasPassword, setHasPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<FormValues>({
@@ -55,22 +54,17 @@ export function SetPasswordForm() {
         setFeedback({
           type: "error",
           message:
-            result.error ?? "לא הצלחנו להגדיר את הסיסמה החדשה, נסו שוב במועד מאוחר יותר.",
+            result.error ?? "לא הצלחנו לעדכן את הסיסמה החדשה, נסו שוב במועד מאוחר יותר.",
         });
-
-        if (result.alreadyHasPassword) {
-          setHasPassword(true);
-        }
 
         return;
       }
 
       form.reset({ newPassword: "" });
-      setHasPassword(true);
       setFeedback({
         type: "success",
         message:
-          result.message ?? "הסיסמה הוגדרה בהצלחה. מעתה תוכלו להתחבר עם הסיסמה שבחרתם.",
+          result.message ?? "הסיסמה עודכנה בהצלחה. מעתה תוכלו להתחבר עם הסיסמה שבחרתם.",
       });
     });
   });
@@ -78,8 +72,7 @@ export function SetPasswordForm() {
   return (
     <div className="space-y-6 text-right">
       <p className="text-muted-foreground text-sm">
-        הפעולה מיועדת למשתמשים שנרשמו באמצעות Google ועדיין לא הגדירו סיסמה לחשבון.
-        לאחר הגדרת הסיסמה תוכלו להיכנס גם באמצעות אימייל וסיסמה רגילה.
+        הזינו סיסמה חדשה כדי לעדכן את סיסמת החשבון. מומלץ לבחור סיסמה חזקה ולשמור עליה בסודיות.
       </p>
 
       {feedback ? (
@@ -87,12 +80,6 @@ export function SetPasswordForm() {
           <AlertTitle>{feedback.type === "error" ? "שגיאה" : "הצלחה"}</AlertTitle>
           <AlertDescription>{feedback.message}</AlertDescription>
         </Alert>
-      ) : null}
-
-      {hasPassword ? (
-        <p className="rounded-md bg-muted px-4 py-3 text-sm">
-          לחשבון זה כבר מוגדרת סיסמה. אם אינכם זוכרים אותה ניתן לבצע איפוס באמצעות מסך ההתחברות.
-        </p>
       ) : null}
 
       <Form {...form}>
@@ -107,7 +94,7 @@ export function SetPasswordForm() {
                   <PasswordInput
                     {...field}
                     dir="ltr"
-                    disabled={isPending || hasPassword}
+                    disabled={isPending}
                     autoComplete="new-password"
                   />
                 </FormControl>
@@ -120,9 +107,9 @@ export function SetPasswordForm() {
           />
 
           <div className="flex justify-end">
-            <Button type="submit" disabled={isPending || hasPassword}>
-              שמירת סיסמה
-            </Button>
+            <ActionButton type="submit" loading={isPending} disabled={isPending}>
+              עדכון סיסמה
+            </ActionButton>
           </div>
         </form>
       </Form>
