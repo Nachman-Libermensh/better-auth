@@ -22,12 +22,12 @@ async function getSessionFromRequest(request: NextRequest) {
 
     return await response.json();
   } catch (error) {
-    console.error("Failed to resolve session in middleware", error);
+    console.error("Failed to resolve session in proxy", error);
     return null;
   }
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, origin, search } = request.nextUrl;
   const session = await getSessionFromRequest(request);
 
