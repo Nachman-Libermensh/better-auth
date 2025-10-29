@@ -3,6 +3,13 @@ import { NextResponse } from "next/server";
 import { matchRoute, routeConfig } from "@/config/routes";
 import { sanitizeCallbackUrl } from "@/lib/utils/callback-url";
 
+/**
+ * IMPORTANT: This proxy handler fully replaces the legacy `src/middleware.ts`
+ * entrypoint—do not recreate that file. Next.js automatically wires this file
+ * when exporting `proxy`, per the official guidance:
+ * https://nextjs.org/docs/messages/middleware-to-proxy
+ */
+
 async function getSessionFromRequest(request: NextRequest) {
   const sessionUrl = new URL("/api/auth/get-session", request.url);
   try {
