@@ -45,7 +45,7 @@ const formSchema = z.object({
     .min(8, "סיסמה חייבת להכיל לפחות 8 תווים")
     .max(128, "הסיסמה ארוכה מדי"),
   role: z.enum(["USER", "ADMIN"], {
-    required_error: "יש לבחור תפקיד",
+    message: "יש לבחור תפקיד",
   }),
 });
 

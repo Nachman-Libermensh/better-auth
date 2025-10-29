@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { useRouter } from "next/navigation"
-import React from "react"
+import { useRouter } from "next/navigation";
+import React from "react";
 
-import { ActionButton } from "@/components/public/action-button"
-import { authClient } from "@/lib/auth-client"
+import { ActionButton } from "@/components/public/action-button";
+import { authClient } from "@/lib/auth-client";
 
 type SignOutButtonProps = {
-  text?: string
-} & React.ComponentProps<typeof ActionButton>
+  text?: string;
+} & React.ComponentProps<typeof ActionButton>;
 
 const SignOutButton = ({
   text,
@@ -17,28 +17,24 @@ const SignOutButton = ({
   onClick,
   ...props
 }: SignOutButtonProps) => {
-  const router = useRouter()
+  const router = useRouter();
 
   const handleSignOut = React.useCallback(
     async (event: React.MouseEvent<HTMLButtonElement>) => {
       if (onClick) {
-        const result = onClick(event)
-
-        if (result && typeof (result as PromiseLike<unknown>).then === "function") {
-          await result
-        }
+        await onClick(event);
       }
 
       return authClient.signOut({
         fetchOptions: {
           onSuccess: () => {
-            router.push("/login")
+            router.push("/login");
           },
         },
-      })
+      });
     },
     [onClick, router]
-  )
+  );
 
   return (
     <ActionButton
@@ -49,7 +45,7 @@ const SignOutButton = ({
     >
       {text ?? "התנתק"}
     </ActionButton>
-  )
-}
+  );
+};
 
-export default SignOutButton
+export default SignOutButton;

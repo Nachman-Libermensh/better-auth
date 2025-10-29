@@ -3,7 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
-function getInitials(name?: string | null, email?: string | null) {
+function getInitials(name?: string | null, email?: string | null): string {
   if (name) {
     const trimmed = name.trim();
     if (trimmed.length === 0) {
@@ -54,15 +54,20 @@ export function UserIdentity({
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <Avatar className="h-9 w-9 border">
-        {image ? (
-          <AvatarImage src={image} alt={name ?? email ?? ""} />
-        ) : null}
+        {image ? <AvatarImage src={image} alt={name ?? email ?? ""} /> : null}
         <AvatarFallback>{fallback}</AvatarFallback>
       </Avatar>
       <div className="min-w-0 space-y-1">
-        <div className={cn("font-medium truncate", primaryClassName)}>{primary}</div>
+        <div className={cn("font-medium truncate", primaryClassName)}>
+          {primary}
+        </div>
         {showSecondary ? (
-          <div className={cn("text-muted-foreground text-xs truncate", secondaryClassName)}>
+          <div
+            className={cn(
+              "text-muted-foreground text-xs truncate",
+              secondaryClassName
+            )}
+          >
             {secondary}
           </div>
         ) : null}

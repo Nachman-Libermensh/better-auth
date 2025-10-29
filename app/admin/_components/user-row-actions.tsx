@@ -106,7 +106,7 @@ export function UserRowActions({ user }: { user: AdminUserRow }) {
           <span className="sr-only">פעולות</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" dir="rtl" className="w-52">
+      <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuLabel className="text-right">
           פעולות עבור {user.name || user.email}
         </DropdownMenuLabel>
@@ -181,7 +181,8 @@ export function UserRowActions({ user }: { user: AdminUserRow }) {
               <AlertDialogHeader className="text-right">
                 <AlertDialogTitle>מחיקת משתמש</AlertDialogTitle>
                 <AlertDialogDescription>
-                  המשתמש יסומן כמחוק וכל הסשנים הפעילים שלו ינותקו. ניתן לשחזר בכל עת.
+                  המשתמש יסומן כמחוק וכל הסשנים הפעילים שלו ינותקו. ניתן לשחזר
+                  בכל עת.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="flex-row-reverse gap-2">

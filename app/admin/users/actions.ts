@@ -19,7 +19,7 @@ const createUserSchema = z.object({
     .min(8, "הסיסמה חייבת להכיל לפחות 8 תווים")
     .max(128, "הסיסמה ארוכה מדי"),
   role: z.enum(["USER", "ADMIN"], {
-    required_error: "חובה לבחור תפקיד",
+    message: "חובה לבחור תפקיד",
   }),
 });
 
@@ -27,7 +27,10 @@ const userIdSchema = z.object({
   userId: z.string().min(1),
 });
 
-const userStatusValues = ["ACTIVE", "INACTIVE"] as const satisfies readonly UserStatus[];
+const userStatusValues = [
+  "ACTIVE",
+  "INACTIVE",
+] as const satisfies readonly UserStatus[];
 
 const updateStatusSchema = z.object({
   userId: z.string().min(1),
@@ -96,7 +99,10 @@ export async function createUserAction(
 
     const response = await auth.api.createUser({
       headers: requestHeaders,
-      body: parsed.data,
+      body: {
+        ...parsed.data,
+        role: parsed.data.role.toLowerCase() as "user" | "admin",
+      },
     });
 
     await prisma.user.update({
@@ -115,9 +121,7 @@ export async function createUserAction(
     };
   } catch (error) {
     const message =
-      error instanceof Error
-        ? error.message
-        : "אירעה שגיאה בעת יצירת המשתמש";
+      error instanceof Error ? error.message : "אירעה שגיאה בעת יצירת המשתמש";
 
     return {
       success: false,
@@ -152,9 +156,7 @@ export async function disconnectUserSessionsAction(
     };
   } catch (error) {
     const message =
-      error instanceof Error
-        ? error.message
-        : "אירעה שגיאה בעת ניתוק המשתמש";
+      error instanceof Error ? error.message : "אירעה שגיאה בעת ניתוק המשתמש";
 
     return {
       success: false,
@@ -200,9 +202,7 @@ export async function softDeleteUserAction(
     };
   } catch (error) {
     const message =
-      error instanceof Error
-        ? error.message
-        : "אירעה שגיאה בעת מחיקת המשתמש";
+      error instanceof Error ? error.message : "אירעה שגיאה בעת מחיקת המשתמש";
 
     return {
       success: false,
@@ -241,9 +241,7 @@ export async function restoreUserAction(
     };
   } catch (error) {
     const message =
-      error instanceof Error
-        ? error.message
-        : "אירעה שגיאה בעת שחזור המשתמש";
+      error instanceof Error ? error.message : "אירעה שגיאה בעת שחזור המשתמש";
 
     return {
       success: false,
@@ -274,9 +272,7 @@ export async function updateUserStatusAction(
       where: { id: parsed.data.userId },
       data: userUpdateData({
         status: parsed.data.status,
-        ...(parsed.data.status === "ACTIVE"
-          ? { deletedAt: null }
-          : {}),
+        ...(parsed.data.status === "ACTIVE" ? { deletedAt: null } : {}),
       }),
     });
 
@@ -297,9 +293,7 @@ export async function updateUserStatusAction(
     };
   } catch (error) {
     const message =
-      error instanceof Error
-        ? error.message
-        : "אירעה שגיאה בעת עדכון הסטטוס";
+      error instanceof Error ? error.message : "אירעה שגיאה בעת עדכון הסטטוס";
 
     return {
       success: false,
