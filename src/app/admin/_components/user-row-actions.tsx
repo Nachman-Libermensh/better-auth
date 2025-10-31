@@ -1,9 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
+import { useState, useTransition } from "react";
 import { AlertTriangle, LogOut, MoreVertical, ShieldX } from "lucide-react";
 import { toast } from "sonner";
 
+import { ActionButton } from "@/components/public/action-button";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,7 +17,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -35,6 +36,9 @@ import {
 
 export function UserRowActions({ user }: { user: AdminUserRow }) {
   const [isPending, startTransition] = useTransition();
+  const [isRemovePending, startRemoveTransition] = useTransition();
+  const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
+  const isAnyPending = isPending || isRemovePending;
   const isBanned = user.banned;
 
   const handleDisconnect = () => {
@@ -64,14 +68,16 @@ export function UserRowActions({ user }: { user: AdminUserRow }) {
     });
   };
 
-  const handleRemove = () => {
-    startTransition(async () => {
+  const handleRemove = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    startRemoveTransition(async () => {
       const result = await removeUserAction({ userId: user.id });
       if (!result.success) {
         toast.error(result.error ?? "אירעה שגיאה בעת הסרת המשתמש");
         return;
       }
       toast.success(result.message ?? "המשתמש הוסר מהמערכת");
+      setIsRemoveDialogOpen(false);
     });
   };
 
@@ -83,7 +89,7 @@ export function UserRowActions({ user }: { user: AdminUserRow }) {
           variant="ghost"
           size="icon"
           className="size-8"
-          disabled={isPending}
+          disabled={isAnyPending}
         >
           <MoreVertical className="size-4" />
           <span className="sr-only">פעולות</span>
@@ -99,7 +105,7 @@ export function UserRowActions({ user }: { user: AdminUserRow }) {
             event.preventDefault();
             handleDisconnect();
           }}
-          disabled={isPending || user.activeSessions === 0}
+          disabled={isAnyPending || user.activeSessions === 0}
         >
           <LogOut className="ml-2 size-4" />
           ניתוק מסשנים פעילים
@@ -109,17 +115,29 @@ export function UserRowActions({ user }: { user: AdminUserRow }) {
             event.preventDefault();
             handleBanToggle();
           }}
-          disabled={isPending}
+          disabled={isAnyPending}
         >
           <ShieldX className="ml-2 size-4" />
           {isBanned ? "שחרור חסימה" : "חסימת משתמש"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <AlertDialog>
+        <AlertDialog
+          open={isRemoveDialogOpen}
+          onOpenChange={(open) => {
+            if (!isRemovePending) {
+              setIsRemoveDialogOpen(open);
+            }
+          }}
+        >
           <AlertDialogTrigger asChild>
             <DropdownMenuItem
-              onSelect={(event) => event.preventDefault()}
-              disabled={isPending}
+              onSelect={(event) => {
+                event.preventDefault();
+                if (!isRemovePending) {
+                  setIsRemoveDialogOpen(true);
+                }
+              }}
+              disabled={isAnyPending}
             >
               <AlertTriangle className="ml-2 size-4" />
               מחיקת משתמש
@@ -134,17 +152,16 @@ export function UserRowActions({ user }: { user: AdminUserRow }) {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="flex-row-reverse gap-2">
-              <AlertDialogAction
-                onClick={(event) => {
-                  event.preventDefault();
-                  handleRemove();
-                }}
-                disabled={isPending}
+              <ActionButton
+                onClick={handleRemove}
+                loading={isRemovePending}
+                disabled={isRemovePending}
+                variant="destructive"
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 מחיקת משתמש
-              </AlertDialogAction>
-              <AlertDialogCancel disabled={isPending}>
+              </ActionButton>
+              <AlertDialogCancel disabled={isRemovePending}>
                 ביטול
               </AlertDialogCancel>
             </AlertDialogFooter>
