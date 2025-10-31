@@ -12,6 +12,61 @@ import { LookupTableName } from "@/shared";
 
 import { LoaderVariant } from "./data-grid-loader";
 
+export type DataGridBadgeVariant =
+  | "default"
+  | "secondary"
+  | "destructive"
+  | "outline";
+
+export interface DataGridBooleanOptions {
+  trueLabel?: string;
+  falseLabel?: string;
+  trueVariant?: DataGridBadgeVariant;
+  falseVariant?: DataGridBadgeVariant;
+  emptyLabel?: string;
+}
+
+export interface DataGridColumnOptions {
+  /**
+   * Custom text labels per value. Works for badge, lookup, lookup-multi and other text based columns.
+   */
+  labels?: Record<string, string>;
+  /**
+   * Configuration for boolean columns including label and badge variant overrides.
+   */
+  boolean?: DataGridBooleanOptions;
+  /**
+   * Default badge variant for badge columns.
+   */
+  variant?: DataGridBadgeVariant;
+  /**
+   * Badge variants per value for badge columns.
+   */
+  variants?: Record<string, DataGridBadgeVariant>;
+  /**
+   * Extra className applied to badge based cells.
+   */
+  className?: string;
+  /**
+   * Number formatting configuration for numeric columns.
+   */
+  format?: "currency" | "number" | "duration" | "percentage";
+  thresholds?: {
+    slow?: number;
+    fast?: number;
+    high?: number;
+    low?: number;
+  };
+  /**
+   * Date formatting configuration for date and datetime columns.
+   */
+  dateFormat?: "short" | "long" | "relative";
+  /**
+   * Allow additional future options without breaking the type.
+   */
+  [key: string]: unknown;
+}
+
 export type DataGridColumnType =
   | "text"
   | "image"
@@ -33,7 +88,9 @@ export type ConditionalClassNameFn<T> = (
   className: string
 ) => string;
 
-export interface DataGridColumnDef<TData extends Record<string, unknown> = Record<string, unknown>> {
+export interface DataGridColumnDef<
+  TData extends Record<string, unknown> = Record<string, unknown>,
+> {
   id?: string;
   accessorKey: keyof TData extends string ? keyof TData : string;
   header: string;
@@ -57,32 +114,13 @@ export interface DataGridColumnDef<TData extends Record<string, unknown> = Recor
     align?: "left" | "right" | "center";
     lookupKey?: LookupTableName;
     emptyValue?: string | number | boolean | null;
-    options?: {
-      variant?: "default" | "secondary" | "destructive" | "outline";
-      variants?: Record<string, "default" | "secondary" | "destructive" | "outline">;
-      className?: string;
-      iconVariants?: Record<
-        string,
-        {
-          variant: "default" | "secondary" | "destructive" | "outline";
-          icon: string;
-          color: string;
-        }
-      >;
-      format?: "currency" | "number" | "duration" | "percentage";
-      thresholds?: {
-        slow?: number;
-        fast?: number;
-        high?: number;
-        low?: number;
-      };
-      dateFormat?: "short" | "long" | "relative";
-      [key: string]: unknown;
-    };
+    options?: DataGridColumnOptions;
   };
 }
 
-export interface DataGridColumnMeta<TData extends Record<string, unknown> = Record<string, unknown>> {
+export interface DataGridColumnMeta<
+  TData extends Record<string, unknown> = Record<string, unknown>,
+> {
   originalColumnDef: DataGridColumnDef<TData>;
   align?: "left" | "right" | "center";
   lookupKey?: LookupTableName;
@@ -91,7 +129,7 @@ export interface DataGridColumnMeta<TData extends Record<string, unknown> = Reco
   optionsForLookup?: Record<string, unknown>;
   type: DataGridColumnType;
   [key: string]: unknown;
-  options?: Record<string, unknown>;
+  options?: DataGridColumnOptions;
 }
 
 declare module "@tanstack/react-table" {

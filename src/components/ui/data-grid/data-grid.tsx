@@ -47,9 +47,9 @@ import { cn } from "@/lib/utils";
 
 import { DataGridLoader } from "./data-grid-loader";
 import {
+  DataGridBooleanOptions,
   DataGridColumnDef,
   DataGridColumnMeta,
-  DataGridColumnType,
   DataGridProps,
   DataGridRowAction,
 } from "./types";
@@ -59,10 +59,43 @@ import Image from "next/image";
 
 const DEFAULT_EMPTY_VALUE = "-";
 
+const BOOLEAN_DEFAULTS: Required<DataGridBooleanOptions> = {
+  trueLabel: "כן",
+  falseLabel: "לא",
+  trueVariant: "default",
+  falseVariant: "secondary",
+  emptyLabel: DEFAULT_EMPTY_VALUE,
+};
+
+const toBooleanValue = (value: unknown) => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    return normalized === "true" || normalized === "1";
+  }
+  return Boolean(value);
+};
+
+const getBooleanOptions = (
+  meta?: Pick<DataGridColumnMeta, "options" | "emptyValue">
+) => {
+  const options = meta?.options?.boolean as DataGridBooleanOptions | undefined;
+  return {
+    trueLabel: options?.trueLabel ?? BOOLEAN_DEFAULTS.trueLabel,
+    falseLabel: options?.falseLabel ?? BOOLEAN_DEFAULTS.falseLabel,
+    trueVariant: options?.trueVariant ?? BOOLEAN_DEFAULTS.trueVariant,
+    falseVariant: options?.falseVariant ?? BOOLEAN_DEFAULTS.falseVariant,
+    emptyLabel:
+      options?.emptyLabel ?? meta?.emptyValue ?? BOOLEAN_DEFAULTS.emptyLabel,
+  } satisfies Required<DataGridBooleanOptions>;
+};
+
 interface DataGridColumnHeaderProps<TData> {
   column: Column<TData, unknown>;
   columnDef: DataGridColumnDef<TData>;
   filterOptions: Array<{ label: string; value: unknown }> | undefined;
+  meta: DataGridColumnMeta<TData>;
 }
 
 const formatNumber = (value: number, options?: DataGridColumnMeta["options"]) => {
@@ -117,23 +150,53 @@ const formatDate = (
   return format(date, formatType === "long" ? "dd/MM/yyyy" : "dd/MM/yy");
 };
 
-const getBooleanLabel = (value: boolean | null | undefined) => {
+const getBooleanLabel = (
+  value: boolean | null | undefined,
+  meta?: Pick<DataGridColumnMeta, "options" | "emptyValue">
+) => {
   if (value === null || value === undefined) {
-    return DEFAULT_EMPTY_VALUE;
+    return getBooleanOptions(meta).emptyLabel;
   }
 
-  return value ? "כן" : "לא";
+  const booleanOptions = getBooleanOptions(meta);
+  return value ? booleanOptions.trueLabel : booleanOptions.falseLabel;
+};
+
+const getFilterLabelForValue = <TData,>(
+  value: unknown,
+  column: DataGridColumnDef<TData>,
+  meta: DataGridColumnMeta<TData>
+) => {
+  if (value === undefined || value === null) {
+    return meta.emptyValue ?? DEFAULT_EMPTY_VALUE;
+  }
+
+  const labels = meta.options?.labels as Record<string, string> | undefined;
+  const stringValue = String(value);
+
+  switch (column.type) {
+    case "boolean": {
+      return getBooleanLabel(toBooleanValue(value), meta);
+    }
+    case "lookup":
+    case "lookup-multi":
+    case "badge": {
+      return labels?.[stringValue] ?? stringValue;
+    }
+    default:
+      return stringValue;
+  }
 };
 
 const deriveFilterOptions = <TData extends Record<string, unknown>>(
   data: TData[],
-  accessorKey: keyof TData,
-  type: DataGridColumnType
+  column: DataGridColumnDef<TData>,
+  meta: DataGridColumnMeta<TData>
 ): Array<{ label: string; value: unknown }> => {
   const uniqueValues = new Map<unknown, string>();
 
   data.forEach((item) => {
-    const rawValue = (item as Record<string, unknown>)[accessorKey as string];
+    const rawValue = (item as Record<string, unknown>)[column.accessorKey as string];
     if (rawValue === undefined || rawValue === null) {
       return;
     }
@@ -141,20 +204,26 @@ const deriveFilterOptions = <TData extends Record<string, unknown>>(
     if (Array.isArray(rawValue)) {
       rawValue.forEach((entry) => {
         if (!uniqueValues.has(entry)) {
-          uniqueValues.set(entry, String(entry));
+          uniqueValues.set(entry, getFilterLabelForValue(entry, column, meta));
         }
       });
       return;
     }
 
     if (!uniqueValues.has(rawValue)) {
-      if (type === "boolean") {
-        uniqueValues.set(rawValue, getBooleanLabel(Boolean(rawValue)));
-      } else {
-        uniqueValues.set(rawValue, String(rawValue));
-      }
+      uniqueValues.set(rawValue, getFilterLabelForValue(rawValue, column, meta));
     }
   });
+
+  if (column.type === "boolean") {
+    const booleanOptions = getBooleanOptions(meta);
+    if (!uniqueValues.has(true)) {
+      uniqueValues.set(true, booleanOptions.trueLabel);
+    }
+    if (!uniqueValues.has(false)) {
+      uniqueValues.set(false, booleanOptions.falseLabel);
+    }
+  }
 
   return Array.from(uniqueValues.entries()).map(([value, label]) => ({ label, value }));
 };
@@ -213,7 +282,7 @@ function getDefaultCellValue<TData>(
 ): React.ReactNode {
   const value = row.getValue<unknown>(columnDef.accessorKey as string);
   const options = meta.options;
-  const variants = options?.variants as Record<string, string | undefined> | undefined;
+  const labels = options?.labels as Record<string, string> | undefined;
   const badgeVariants = options?.variants as
     | Record<
         string,
@@ -226,6 +295,7 @@ function getDefaultCellValue<TData>(
     | "destructive"
     | "outline"
     | undefined;
+  const booleanOptions = getBooleanOptions(meta);
 
   switch (columnDef.type) {
     case "image": {
@@ -270,7 +340,7 @@ function getDefaultCellValue<TData>(
     case "lookup": {
       if (!value) return meta.emptyValue ?? DEFAULT_EMPTY_VALUE;
       if (typeof value === "string" || typeof value === "number") {
-        const lookupLabel = variants?.[String(value)] ?? String(value);
+        const lookupLabel = labels?.[String(value)] ?? String(value);
         return <span>{lookupLabel}</span>;
       }
       return value;
@@ -283,7 +353,7 @@ function getDefaultCellValue<TData>(
         <div className="flex flex-wrap gap-1">
           {value.map((item) => (
             <Badge key={String(item)} variant="secondary">
-              {variants?.[String(item)] ?? item}
+              {labels?.[String(item)] ?? item}
             </Badge>
           ))}
         </div>
@@ -302,8 +372,14 @@ function getDefaultCellValue<TData>(
       return formatDate(value, columnDef.type, options);
     }
     case "boolean": {
+      if (value === null || value === undefined) {
+        return booleanOptions.emptyLabel;
+      }
+      const boolValue = toBooleanValue(value);
       return (
-        <Badge variant={value ? "default" : "secondary"}>{getBooleanLabel(Boolean(value))}</Badge>
+        <Badge variant={boolValue ? booleanOptions.trueVariant : booleanOptions.falseVariant}>
+          {boolValue ? booleanOptions.trueLabel : booleanOptions.falseLabel}
+        </Badge>
       );
     }
     case "badge": {
@@ -312,7 +388,7 @@ function getDefaultCellValue<TData>(
         badgeVariants?.[String(value)] ?? badgeDefaultVariant ?? "secondary";
       return (
         <Badge variant={variant} className={options?.className}>
-          {String(value)}
+          {labels?.[String(value)] ?? String(value)}
         </Badge>
       );
     }
@@ -325,6 +401,7 @@ function ColumnFilterInput<TData>({
   column,
   columnDef,
   filterOptions,
+  meta,
 }: DataGridColumnHeaderProps<TData>) {
   if (columnDef.enableFiltering === false) {
     return null;
@@ -452,12 +529,16 @@ function ColumnFilterInput<TData>({
             <Button variant="outline" size="sm" className="h-8">
               {filterValue === undefined || filterValue === ""
                 ? "הכל"
-                : getBooleanLabel(Boolean(filterValue))}
+                : getBooleanLabel(filterValue as boolean, meta)}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => column.setFilterValue(true)}>כן</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => column.setFilterValue(false)}>לא</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => column.setFilterValue(true)}>
+              {getBooleanLabel(true, meta)}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => column.setFilterValue(false)}>
+              {getBooleanLabel(false, meta)}
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => column.setFilterValue(undefined)}>
               איפוס
             </DropdownMenuItem>
@@ -470,7 +551,12 @@ function ColumnFilterInput<TData>({
   }
 }
 
-function DataGridColumnHeader<TData>({ column, columnDef, filterOptions }: DataGridColumnHeaderProps<TData>) {
+function DataGridColumnHeader<TData>({
+  column,
+  columnDef,
+  filterOptions,
+  meta,
+}: DataGridColumnHeaderProps<TData>) {
   const sorted = column.getIsSorted();
   return (
     <div className="flex flex-col gap-2">
@@ -506,7 +592,12 @@ function DataGridColumnHeader<TData>({ column, columnDef, filterOptions }: DataG
                 ) : null}
               </div>
               <div className="mt-3 space-y-2">
-                <ColumnFilterInput column={column} columnDef={columnDef} filterOptions={filterOptions} />
+                <ColumnFilterInput
+                  column={column}
+                  columnDef={columnDef}
+                  filterOptions={filterOptions}
+                  meta={meta}
+                />
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -645,60 +736,33 @@ function buildRowActionCell<TData>(
   );
 }
 
-function DataGrid<TData extends Record<string, unknown> = Record<string, unknown>>({
+interface UseDataGridColumnsProps<
+  TData extends Record<string, unknown> = Record<string, unknown>,
+> {
+  columns: DataGridColumnDef<TData>[];
+  data: TData[];
+  showSelectCol: boolean;
+  disableSelect?: (row: Row<TData>) => boolean;
+  rowActions: DataGridRowAction<TData>[];
+  rowActionsVariant: "icon" | "popover";
+  rowActionsPosition: "left" | "right";
+}
+
+export function useDataGridColumns<
+  TData extends Record<string, unknown> = Record<string, unknown>,
+>({
   columns,
-  data = [] as TData[],
-  className,
-  scrollAreaClassName,
-  title,
-  status = "success",
-  noDataMessage = "לא נמצאו נתונים",
-  noDataTitle,
-  noDataActions,
-  expandableRow,
-  rowActions = [] as DataGridRowAction<TData>[],
-  rowActionsVariant = "icon",
-  rowActionsPosition = "right",
-  headerActions,
-  headerActionsPosition = "right",
-  onRowClick,
-  showHeaderActions = true,
-  showSearch = true,
-  showPagination = true,
-  showSelectCol = false,
+  data,
+  showSelectCol,
   disableSelect,
-  onSelectionChange,
-  customPagination,
-  rowId,
-  rowClassName,
-  variant = "default",
-  initialColumnFilters,
-  initialSorting,
-  initialGlobalFilter,
-  loaderVariant = "skeleton",
-  loaderMessage,
-  loaderRows = 6,
-  onExportExcel,
-  onResetFilters,
-  errorTitle = "שגיאה בטעינת הנתונים",
-  errorMessage = "אנא נסה שוב מאוחר יותר.",
-  errorActions,
-}: DataGridProps<TData>) {
-  const [sorting, setSorting] = useState<SortingState>(initialSorting ?? []);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(
-    initialColumnFilters ?? []
-  );
-  const [globalFilter, setGlobalFilter] = useState(initialGlobalFilter ?? "");
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-  const [expanded, setExpanded] = useState<ExpandedState>({});
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-
-  const dataMemo = useMemo(() => data ?? [], [data]);
-
-  const columnDefs = useMemo<ColumnDef<TData, unknown>[]>(() => {
+  rowActions,
+  rowActionsVariant,
+  rowActionsPosition,
+}: UseDataGridColumnsProps<TData>): ColumnDef<TData, unknown>[] {
+  return useMemo(() => {
     const baseColumns = columns.map((column) => {
       const meta = getMeta(column);
-      const filterOptions = deriveFilterOptions(dataMemo, column.accessorKey, column.type);
+      const filterOptions = deriveFilterOptions(data, column, meta);
 
       return {
         id: column.id ?? (column.accessorKey as string),
@@ -708,6 +772,7 @@ function DataGrid<TData extends Record<string, unknown> = Record<string, unknown
             column={tableColumn}
             columnDef={column}
             filterOptions={filterOptions}
+            meta={meta}
           />
         ),
         cell: ({ row }: { row: Row<TData> }) => {
@@ -758,7 +823,8 @@ function DataGrid<TData extends Record<string, unknown> = Record<string, unknown
           enableSorting: false,
           enableColumnFilter: false,
           header: () => <span className="text-sm font-medium">פעולות</span>,
-          cell: ({ row }) => buildRowActionCell(row as Row<TData>, rowActions, rowActionsVariant),
+          cell: ({ row }) =>
+            buildRowActionCell(row as Row<TData>, rowActions, rowActionsVariant),
           meta: {
             align: "center",
             sticky: rowActionsPosition,
@@ -774,8 +840,13 @@ function DataGrid<TData extends Record<string, unknown> = Record<string, unknown
             enableColumnFilter: false,
             header: ({ table }: { table: Table<TData> }) => (
               <Checkbox
-                checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
-                onCheckedChange={(value) => table.toggleAllPageRowsSelected(Boolean(value))}
+                checked={
+                  table.getIsAllPageRowsSelected() ||
+                  (table.getIsSomePageRowsSelected() && "indeterminate")
+                }
+                onCheckedChange={(value) =>
+                  table.toggleAllPageRowsSelected(Boolean(value))
+                }
                 aria-label="בחר הכל"
                 onClick={(event) => event.stopPropagation()}
               />
@@ -783,7 +854,9 @@ function DataGrid<TData extends Record<string, unknown> = Record<string, unknown
             cell: ({ row }: { row: Row<TData> }) => (
               <Checkbox
                 checked={row.getIsSelected()}
-                onCheckedChange={(value) => row.toggleSelected(Boolean(value))}
+                onCheckedChange={(value) =>
+                  row.toggleSelected(Boolean(value))
+                }
                 aria-label="בחר שורה"
                 disabled={disableSelect ? disableSelect(row) : false}
                 onClick={(event) => event.stopPropagation()}
@@ -804,13 +877,73 @@ function DataGrid<TData extends Record<string, unknown> = Record<string, unknown
     return columnsWithSelection;
   }, [
     columns,
-    dataMemo,
+    data,
     disableSelect,
     rowActions,
     rowActionsPosition,
     rowActionsVariant,
     showSelectCol,
   ]);
+}
+
+function DataGrid<TData extends Record<string, unknown> = Record<string, unknown>>({
+  columns,
+  data = [] as TData[],
+  className,
+  scrollAreaClassName,
+  title,
+  status = "success",
+  noDataMessage = "לא נמצאו נתונים",
+  noDataTitle,
+  noDataActions,
+  expandableRow,
+  rowActions = [] as DataGridRowAction<TData>[],
+  rowActionsVariant = "icon",
+  rowActionsPosition = "right",
+  headerActions,
+  headerActionsPosition = "right",
+  onRowClick,
+  showHeaderActions = true,
+  showSearch = true,
+  showPagination = true,
+  showSelectCol = false,
+  disableSelect,
+  onSelectionChange,
+  customPagination,
+  rowId,
+  rowClassName,
+  variant = "default",
+  initialColumnFilters,
+  initialSorting,
+  initialGlobalFilter,
+  loaderVariant = "skeleton",
+  loaderMessage,
+  loaderRows = 6,
+  onExportExcel,
+  onResetFilters,
+  errorTitle = "שגיאה בטעינת הנתונים",
+  errorMessage = "אנא נסה שוב מאוחר יותר.",
+  errorActions,
+}: DataGridProps<TData>) {
+  const [sorting, setSorting] = useState<SortingState>(initialSorting ?? []);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(
+    initialColumnFilters ?? []
+  );
+  const [globalFilter, setGlobalFilter] = useState(initialGlobalFilter ?? "");
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [expanded, setExpanded] = useState<ExpandedState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+
+  const dataMemo = useMemo(() => data ?? [], [data]);
+  const columnDefs = useDataGridColumns({
+    columns,
+    data: dataMemo,
+    showSelectCol,
+    disableSelect,
+    rowActions,
+    rowActionsVariant,
+    rowActionsPosition,
+  });
 
   const table = useReactTable<TData>({
     data: dataMemo,

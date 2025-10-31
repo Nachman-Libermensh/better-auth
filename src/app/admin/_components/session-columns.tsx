@@ -2,7 +2,6 @@
 
 import { differenceInMinutes } from "date-fns";
 
-import { Badge } from "@/components/ui/badge";
 import type { DataGridColumnDef } from "@/components/ui/data-grid";
 import type { AdminSessionRow } from "@/lib/admin-data";
 
@@ -50,19 +49,15 @@ export const sessionColumns: DataGridColumnDef<AdminSessionRow>[] = [
     meta: {
       align: "center",
       options: {
+        labels: {
+          ACTIVE: "פעיל",
+          EXPIRED: "פג",
+        },
         variants: {
           ACTIVE: "default",
           EXPIRED: "outline",
         },
       },
-    },
-    cell: (session) => {
-      const isActive = session.status === "ACTIVE";
-      return (
-        <Badge variant={isActive ? "default" : "outline"}>
-          {isActive ? "פעיל" : "פג"}
-        </Badge>
-      );
     },
   },
   {

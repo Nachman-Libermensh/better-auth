@@ -29,31 +29,33 @@ export const userColumns: DataGridColumnDef<AdminUserRow>[] = [
     meta: {
       align: "center",
       options: {
+        labels: {
+          admin: "מנהל",
+          user: "משתמש",
+        },
         variants: {
           admin: "default",
           user: "secondary",
         },
       },
     },
-    cell: (user) => {
-      const isAdmin = user.roles.includes("admin");
-      return (
-        <Badge variant={isAdmin ? "default" : "secondary"}>
-          {isAdmin ? "מנהל" : "משתמש"}
-        </Badge>
-      );
-    },
   },
   {
     accessorKey: "banned",
     header: "חסימה",
     type: "boolean",
-    meta: { align: "center" },
-    cell: (user) => (
-      <Badge variant={user.banned ? "destructive" : "secondary"}>
-        {user.banned ? "חסום" : "פעיל"}
-      </Badge>
-    ),
+    meta: {
+      align: "center",
+      options: {
+        boolean: {
+          trueLabel: "חסום",
+          falseLabel: "פעיל",
+          trueVariant: "destructive",
+          falseVariant: "secondary",
+          emptyLabel: "—",
+        },
+      },
+    },
   },
   {
     id: "status",
