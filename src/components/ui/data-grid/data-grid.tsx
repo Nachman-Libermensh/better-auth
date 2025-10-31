@@ -36,7 +36,6 @@ import {
 } from "@/components/ui/empty";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import {
   Table as UiTable,
   TableBody,
@@ -46,6 +45,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { DataGridLoader } from "./data-grid-loader";
 import {
@@ -309,16 +310,24 @@ const filterFns = {
     return value === filterValue;
   },
   oneOf: <TData,>(row: Row<TData>, columnId: string, filterValue: unknown[]) => {
-    if (!Array.isArray(filterValue) || filterValue.length === 0) {
+    const candidates = Array.isArray(filterValue)
+      ? filterValue
+      : filterValue === undefined || filterValue === null || filterValue === ""
+        ? []
+        : [filterValue];
+
+    if (!candidates.length) {
       return true;
     }
     const value = row.getValue<unknown>(columnId);
 
     if (Array.isArray(value)) {
-      return value.some((item) => filterValue.includes(item));
+      return value.some((item) =>
+        candidates.some((candidate) => isSameFilterValue(candidate, item))
+      );
     }
 
-    return filterValue.includes(value);
+    return candidates.some((candidate) => isSameFilterValue(candidate, value));
   },
   range: <TData,>(row: Row<TData>, columnId: string, filterValue: { min?: number; max?: number }) => {
     if (!filterValue) return true;
@@ -517,182 +526,90 @@ function ColumnFilterInput<TData>({
 
   const filterValue = column.getFilterValue();
 
+  const renderOptionsCommand = () => {
+    const optionsList = filterOptions ?? [];
+
+    const normalizedValue = Array.isArray(filterValue)
+      ? filterValue
+      : filterValue === undefined || filterValue === null || filterValue === ""
+        ? []
+        : [filterValue];
+
+    const handleToggle = (value: unknown) => {
+      const exists = normalizedValue.some((item) => isSameFilterValue(item, value));
+      const next = exists
+        ? normalizedValue.filter((item) => !isSameFilterValue(item, value))
+        : [...normalizedValue, value];
+
+      if (!next.length) {
+        column.setFilterValue(undefined);
+        return;
+      }
+
+      const includesAll =
+        optionsList.length > 0 &&
+        optionsList.every((option) => next.some((item) => isSameFilterValue(item, option.value)));
+
+      column.setFilterValue(includesAll ? undefined : next);
+    };
+
+    const hasSelections = normalizedValue.length > 0;
+    const isAllSelected =
+      !hasSelections ||
+      (optionsList.length > 0 &&
+        optionsList.every((option) =>
+          normalizedValue.some((item) => isSameFilterValue(item, option.value))
+        ));
+
+    return (
+      <div className="space-y-2" dir="rtl">
+        <Command className="rounded-lg border">
+          <CommandInput placeholder="חיפוש אפשרויות" />
+          <CommandList>
+            <CommandEmpty>לא נמצאו אפשרויות</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="all"
+                onSelect={() => column.setFilterValue(undefined)}
+                className="flex items-center justify-between gap-2"
+              >
+                <span className="flex-1 text-right">כל האפשרויות</span>
+                <Checkbox checked={isAllSelected} className="pointer-events-none" readOnly />
+              </CommandItem>
+              {optionsList.map((option) => {
+                const isSelected = normalizedValue.some((item) =>
+                  isSameFilterValue(item, option.value)
+                );
+                return (
+                  <CommandItem
+                    key={String(option.value)}
+                    value={String(option.label)}
+                    onSelect={() => handleToggle(option.value)}
+                    className="flex items-center justify-between gap-2"
+                  >
+                    <span className="flex-1 text-right">{option.label}</span>
+                    <Checkbox checked={isSelected} className="pointer-events-none" readOnly />
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </div>
+    );
+  };
+
   switch (columnDef.type) {
     case "text":
     case "text-long":
     case "text-copy":
     case "badge":
-    case "lookup": {
-      return (
-        <Input
-          value={(filterValue as string) ?? ""}
-          onChange={(event) => column.setFilterValue(event.target.value)}
-          placeholder="חיפוש"
-          className="h-8"
-        />
-      );
-    }
+    case "lookup":
     case "options": {
-      const optionsList = filterOptions ?? [];
-      const normalizedValue = Array.isArray(filterValue)
-        ? filterValue
-        : filterValue === undefined || filterValue === null || filterValue === ""
-          ? []
-          : [filterValue];
-
-      const handleToggle = (value: unknown) => {
-        const exists = normalizedValue.some((item) => isSameFilterValue(item, value));
-        const next = exists
-          ? normalizedValue.filter((item) => !isSameFilterValue(item, value))
-          : [...normalizedValue, value];
-
-        if (!next.length) {
-          column.setFilterValue(undefined);
-          return;
-        }
-
-        const includesAll =
-          optionsList.length > 0 &&
-          optionsList.every((option) =>
-            next.some((item) => isSameFilterValue(item, option.value))
-          );
-
-        column.setFilterValue(includesAll ? undefined : next);
-      };
-
-      const hasSelections = normalizedValue.length > 0;
-      const isAllSelected =
-        !hasSelections ||
-        (optionsList.length > 0 &&
-          optionsList.every((option) =>
-            normalizedValue.some((item) => isSameFilterValue(item, option.value))
-          ));
-
-      return (
-        <div className="space-y-2" dir="rtl">
-          <Command className="rounded-lg border">
-            <CommandInput placeholder="חיפוש אפשרויות" />
-            <CommandList>
-              <CommandEmpty>לא נמצאו אפשרויות</CommandEmpty>
-              <CommandGroup>
-                <CommandItem
-                  value="all"
-                  onSelect={() => column.setFilterValue(undefined)}
-                  className="flex items-center justify-between gap-2"
-                >
-                  <span className="flex-1 text-right">כל האפשרויות</span>
-                  <Checkbox
-                    checked={isAllSelected}
-                    className="pointer-events-none"
-                    readOnly
-                  />
-                </CommandItem>
-                {optionsList.map((option) => {
-                  const isSelected = normalizedValue.some((item) =>
-                    isSameFilterValue(item, option.value)
-                  );
-                  return (
-                    <CommandItem
-                      key={String(option.value)}
-                      value={String(option.label)}
-                      onSelect={() => handleToggle(option.value)}
-                      className="flex items-center justify-between gap-2"
-                    >
-                      <span className="flex-1 text-right">{option.label}</span>
-                      <Checkbox
-                        checked={isSelected}
-                        className="pointer-events-none"
-                        readOnly
-                      />
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </div>
-      );
+      return renderOptionsCommand();
     }
     case "lookup-multi": {
-      const optionsList = filterOptions ?? [];
-      const normalizedValue = Array.isArray(filterValue)
-        ? filterValue
-        : filterValue === undefined || filterValue === null || filterValue === ""
-          ? []
-          : [filterValue];
-
-      const handleToggle = (value: unknown) => {
-        const exists = normalizedValue.some((item) => isSameFilterValue(item, value));
-        const next = exists
-          ? normalizedValue.filter((item) => !isSameFilterValue(item, value))
-          : [...normalizedValue, value];
-
-        if (!next.length) {
-          column.setFilterValue(undefined);
-          return;
-        }
-
-        const includesAll =
-          optionsList.length > 0 &&
-          optionsList.every((option) =>
-            next.some((item) => isSameFilterValue(item, option.value))
-          );
-
-        column.setFilterValue(includesAll ? undefined : next);
-      };
-
-      const hasSelections = normalizedValue.length > 0;
-      const isAllSelected =
-        !hasSelections ||
-        (optionsList.length > 0 &&
-          optionsList.every((option) =>
-            normalizedValue.some((item) => isSameFilterValue(item, option.value))
-          ));
-
-      return (
-        <div className="space-y-2" dir="rtl">
-          <Command className="rounded-lg border">
-            <CommandInput placeholder="חיפוש אפשרויות" />
-            <CommandList>
-              <CommandEmpty>לא נמצאו אפשרויות</CommandEmpty>
-              <CommandGroup>
-                <CommandItem
-                  value="all"
-                  onSelect={() => column.setFilterValue(undefined)}
-                  className="flex items-center justify-between gap-2"
-                >
-                  <span className="flex-1 text-right">כל האפשרויות</span>
-                  <Checkbox
-                    checked={isAllSelected}
-                    className="pointer-events-none"
-                    readOnly
-                  />
-                </CommandItem>
-                {optionsList.map((option) => {
-                  const isSelected = normalizedValue.some((item) =>
-                    isSameFilterValue(item, option.value)
-                  );
-                  return (
-                    <CommandItem
-                      key={String(option.value)}
-                      value={String(option.label)}
-                      onSelect={() => handleToggle(option.value)}
-                      className="flex items-center justify-between gap-2"
-                    >
-                      <span className="flex-1 text-right">{option.label}</span>
-                      <Checkbox
-                        checked={isSelected}
-                        className="pointer-events-none"
-                        readOnly
-                      />
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </div>
-      );
+      return renderOptionsCommand();
     }
     case "number":
     case "currency": {
@@ -789,7 +706,24 @@ function DataGridColumnHeader<TData>({
   const canFilter = columnDef.enableFiltering !== false && column.getCanFilter();
   const canSort = column.getCanSort();
   const canInteract = canFilter || canSort;
-  const isActive = hasFilterValue || Boolean(sorted);
+
+  const handleSortToggle = (event?: React.MouseEvent) => {
+    if (!canSort) return;
+    event?.preventDefault();
+    event?.stopPropagation();
+
+    if (!sorted) {
+      column.toggleSorting(false);
+      return;
+    }
+
+    if (sorted === "asc") {
+      column.toggleSorting(true);
+      return;
+    }
+
+    column.clearSorting();
+  };
 
   const renderSortIndicator = () => {
     if (sorted === "asc") {
@@ -805,114 +739,87 @@ function DataGridColumnHeader<TData>({
 
   if (!canInteract) {
     return (
-      <div className="flex flex-col items-center gap-1 text-center">
-        <div className="flex items-center justify-center gap-1">
-          <span className="text-sm font-medium">{columnDef.header}</span>
-        </div>
+      <div className="flex items-center justify-center text-center">
+        <span className="text-sm font-medium">{columnDef.header}</span>
       </div>
     );
   }
 
+  const headerLabel = (
+    <div className="flex items-center justify-center gap-1">
+      {canSort ? (
+        <button
+          type="button"
+          onClick={handleSortToggle}
+          className={cn(
+            "flex items-center gap-1 text-sm font-medium",
+            canSort ? "cursor-pointer hover:text-primary" : "cursor-default"
+          )}
+        >
+          <span>{columnDef.header}</span>
+          {renderSortIndicator()}
+        </button>
+      ) : (
+        <span className="text-sm font-medium">{columnDef.header}</span>
+      )}
+    </div>
+  );
+
+  const tooltipLabel =
+    typeof columnDef.header === "string"
+      ? `סינון ${columnDef.header}`
+      : "סינון העמודה";
+
   return (
-    <div className="flex flex-col items-center gap-2 text-center">
-      <div className="flex items-center justify-center gap-1 text-sm font-medium">
-        <span>{columnDef.header}</span>
-        {renderSortIndicator()}
-      </div>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant={isActive ? "secondary" : "outline"}
-            size="sm"
-            className={cn(
-              "h-8 gap-2 px-3",
-              isActive && "border-primary text-primary hover:border-primary"
-            )}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <Filter
-              className={cn(
-                "h-4 w-4",
-                isActive ? "text-primary" : "text-muted-foreground"
-              )}
+    <div className="flex items-center justify-center gap-1">
+      {headerLabel}
+      {canFilter ? (
+        <Popover>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-8 w-8 text-muted-foreground",
+                    hasFilterValue &&
+                      "bg-primary/10 text-primary hover:bg-primary/20 ring-1 ring-primary/60"
+                  )}
+                  onClick={(event) => event.stopPropagation()}
+                  aria-pressed={hasFilterValue}
+                >
+                  <Filter className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent dir="rtl" sideOffset={8}>
+              {tooltipLabel}
+            </TooltipContent>
+          </Tooltip>
+          <PopoverContent align="center" className="w-80 space-y-3" dir="rtl" sideOffset={8}>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">{columnDef.header}</span>
+              {hasFilterValue ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2"
+                  onClick={() => column.setFilterValue(undefined)}
+                >
+                  איפוס
+                </Button>
+              ) : null}
+            </div>
+            <ColumnFilterInput
+              column={column}
+              columnDef={columnDef}
+              filterOptions={filterOptions}
+              meta={meta}
             />
-            <span>סינון ומיון</span>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="center" className="w-80 space-y-4" dir="rtl" sideOffset={12}>
-          <div className="space-y-1 text-right">
-            <p className="text-sm font-semibold">{columnDef.header}</p>
-            <p className="text-xs text-muted-foreground">
-              הגדירו סדר ומסננים לעמודה זו
-            </p>
-          </div>
-          {canSort ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground">
-                  מיון
-                </span>
-                {sorted ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2"
-                    onClick={() => column.clearSorting()}
-                  >
-                    איפוס מיון
-                  </Button>
-                ) : null}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant={sorted === "asc" ? "default" : "outline"}
-                  size="sm"
-                  className="h-8 justify-center gap-2"
-                  onClick={() => column.toggleSorting(false)}
-                >
-                  <ArrowUp className="h-4 w-4" />
-                  <span>עולה</span>
-                </Button>
-                <Button
-                  variant={sorted === "desc" ? "default" : "outline"}
-                  size="sm"
-                  className="h-8 justify-center gap-2"
-                  onClick={() => column.toggleSorting(true)}
-                >
-                  <ArrowDown className="h-4 w-4" />
-                  <span>יורד</span>
-                </Button>
-              </div>
-            </div>
-          ) : null}
-          {canSort && canFilter ? <Separator /> : null}
-          {canFilter ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground">
-                  סינון
-                </span>
-                {hasFilterValue ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2"
-                    onClick={() => column.setFilterValue(undefined)}
-                  >
-                    איפוס סינון
-                  </Button>
-                ) : null}
-              </div>
-              <ColumnFilterInput
-                column={column}
-                columnDef={columnDef}
-                filterOptions={filterOptions}
-                meta={meta}
-              />
-            </div>
-          ) : null}
-        </PopoverContent>
-      </Popover>
+          </PopoverContent>
+        </Popover>
+      ) : null}
     </div>
   );
 }
@@ -1126,7 +1033,7 @@ export function useDataGridColumns<
             case "text-copy":
             case "lookup":
             case "badge":
-              return filterFns.text;
+              return filterFns.oneOf;
             case "options":
               return filterFns.oneOf;
             case "lookup-multi":
@@ -1140,7 +1047,7 @@ export function useDataGridColumns<
             case "datetime":
               return filterFns.date;
             default:
-              return filterFns.text;
+              return filterFns.oneOf;
           }
         })(),
       } satisfies ColumnDef<TData, unknown>;
