@@ -519,6 +519,7 @@ function ColumnFilterInput<TData>({
   columnDef,
   filterOptions,
 }: DataGridColumnHeaderProps<TData>) {
+  const [optionsSearchTerm, setOptionsSearchTerm] = useState("");
   if (columnDef.enableFiltering === false) {
     return null;
   }
@@ -534,11 +535,25 @@ function ColumnFilterInput<TData>({
         ? []
         : [filterValue];
 
+    const normalizedSearch = optionsSearchTerm.trim().toLowerCase();
+    const visibleOptions = normalizedSearch
+      ? optionsList.filter((option) =>
+          option.label.toLowerCase().includes(normalizedSearch)
+        )
+      : optionsList;
+
+    const currentSelection = normalizedSearch
+      ? normalizedValue.filter((item) =>
+          visibleOptions.some((option) => isSameFilterValue(item, option.value))
+        )
+      : normalizedValue;
+
     const handleToggle = (value: unknown) => {
-      const exists = normalizedValue.some((item) => isSameFilterValue(item, value));
+      const baseSelection = normalizedSearch ? currentSelection : normalizedValue;
+      const exists = baseSelection.some((item) => isSameFilterValue(item, value));
       const next = exists
-        ? normalizedValue.filter((item) => !isSameFilterValue(item, value))
-        : [...normalizedValue, value];
+        ? baseSelection.filter((item) => !isSameFilterValue(item, value))
+        : [...baseSelection, value];
 
       if (!next.length) {
         column.setFilterValue(undefined);
@@ -553,29 +568,60 @@ function ColumnFilterInput<TData>({
     };
 
     const hasSelections = normalizedValue.length > 0;
-    const isAllSelected =
-      !hasSelections ||
-      (optionsList.length > 0 &&
-        optionsList.every((option) =>
-          normalizedValue.some((item) => isSameFilterValue(item, option.value))
-        ));
+    const areAllOptionsSelected =
+      optionsList.length > 0 &&
+      optionsList.every((option) =>
+        normalizedValue.some((item) => isSameFilterValue(item, option.value))
+      );
+    const areVisibleOptionsSelected =
+      visibleOptions.length > 0 &&
+      visibleOptions.every((option) =>
+        normalizedValue.some((item) => isSameFilterValue(item, option.value))
+      );
+    const isAllSelected = normalizedSearch
+      ? !hasSelections || areVisibleOptionsSelected
+      : !hasSelections || areAllOptionsSelected;
+
+    const handleSelectAll = () => {
+      if (normalizedSearch) {
+        if (!visibleOptions.length) {
+          column.setFilterValue(undefined);
+          return;
+        }
+
+        const matchingValues = visibleOptions.map((option) => option.value);
+        const shouldClear =
+          optionsList.length > 0 && matchingValues.length === optionsList.length;
+
+        column.setFilterValue(shouldClear ? undefined : matchingValues);
+        return;
+      }
+
+      column.setFilterValue(undefined);
+    };
 
     return (
       <div className="space-y-2" dir="rtl">
         <Command className="rounded-lg border">
-          <CommandInput placeholder="חיפוש אפשרויות" />
+          <CommandInput
+            placeholder="חיפוש אפשרויות"
+            value={optionsSearchTerm}
+            onValueChange={setOptionsSearchTerm}
+          />
           <CommandList>
             <CommandEmpty>לא נמצאו אפשרויות</CommandEmpty>
             <CommandGroup>
               <CommandItem
                 value="all"
-                onSelect={() => column.setFilterValue(undefined)}
+                onSelect={handleSelectAll}
                 className="flex items-center justify-between gap-2"
               >
-                <span className="flex-1 text-right">כל האפשרויות</span>
+                <span className="flex-1 text-right">
+                  {normalizedSearch ? "בחר את כל האפשרויות התואמות" : "בחר הכל"}
+                </span>
                 <Checkbox checked={isAllSelected} className="pointer-events-none" readOnly />
               </CommandItem>
-              {optionsList.map((option) => {
+              {visibleOptions.map((option) => {
                 const isSelected = normalizedValue.some((item) =>
                   isSameFilterValue(item, option.value)
                 );
@@ -757,13 +803,18 @@ function DataGridColumnHeader<TData>({
             <TooltipTrigger asChild>
               <PopoverTrigger asChild>
                 <Button
-                  variant={hasFilterValue ? "destructive" : "ghost"}
+                  variant="ghost"
                   size="icon"
-                  className="h-8 w-8 p-0 text-muted-foreground"
+                  className="h-8 w-8 p-0"
                   onClick={(event) => event.stopPropagation()}
                   aria-pressed={hasFilterValue}
                 >
-                  <Filter className="h-4 w-4" />
+                  <Filter
+                    className={cn(
+                      "h-4 w-4",
+                      hasFilterValue ? "text-destructive" : "text-muted-foreground"
+                    )}
+                  />
                 </Button>
               </PopoverTrigger>
             </TooltipTrigger>
