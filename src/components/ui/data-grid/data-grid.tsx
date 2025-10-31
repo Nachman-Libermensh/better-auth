@@ -50,11 +50,12 @@ import {
   DataGridBooleanOptions,
   DataGridColumnDef,
   DataGridColumnMeta,
+  DataGridOptionItem,
   DataGridProps,
   DataGridRowAction,
 } from "./types";
 
-import { ArrowUpDown, Filter, MoreHorizontal, X } from "lucide-react";
+import { ArrowUpDown, Check, Filter, MoreHorizontal, X } from "lucide-react";
 import Image from "next/image";
 
 const DEFAULT_EMPTY_VALUE = "-";
@@ -65,6 +66,32 @@ const BOOLEAN_DEFAULTS: Required<DataGridBooleanOptions> = {
   trueVariant: "default",
   falseVariant: "secondary",
   emptyLabel: DEFAULT_EMPTY_VALUE,
+};
+
+const isOptionValueEqual = (
+  optionValue: string | number | boolean,
+  candidate: unknown
+) => {
+  if (typeof candidate === "string" || typeof candidate === "number") {
+    return String(optionValue) === String(candidate);
+  }
+  if (typeof candidate === "boolean") {
+    return optionValue === candidate;
+  }
+  return optionValue === candidate;
+};
+
+const isSelectableOptionValue = (
+  value: unknown
+): value is string | number | boolean =>
+  typeof value === "string" || typeof value === "number" || typeof value === "boolean";
+
+const findOptionItem = (
+  value: unknown,
+  items: DataGridOptionItem[] | undefined
+) => {
+  if (!items?.length) return undefined;
+  return items.find((item) => isOptionValueEqual(item.value, value));
 };
 
 const toBooleanValue = (value: unknown) => {
@@ -180,7 +207,17 @@ const getFilterLabelForValue = <TData,>(
     }
     case "lookup":
     case "lookup-multi":
+    case "options":
     case "badge": {
+      if (column.type === "options") {
+        const optionItem = findOptionItem(
+          value,
+          meta.options?.optionItems as DataGridOptionItem[] | undefined
+        );
+        if (optionItem) {
+          return optionItem.label;
+        }
+      }
       return labels?.[stringValue] ?? stringValue;
     }
     default:
@@ -194,6 +231,18 @@ const deriveFilterOptions = <TData extends Record<string, unknown>>(
   meta: DataGridColumnMeta<TData>
 ): Array<{ label: string; value: unknown }> => {
   const uniqueValues = new Map<unknown, string>();
+
+  if (column.type === "options") {
+    const optionItems = meta.options?.optionItems as
+      | DataGridOptionItem[]
+      | undefined;
+    if (optionItems?.length) {
+      return optionItems.map((option) => ({
+        label: option.label,
+        value: option.value,
+      }));
+    }
+  }
 
   data.forEach((item) => {
     const rawValue = (item as Record<string, unknown>)[column.accessorKey as string];
@@ -382,6 +431,47 @@ function getDefaultCellValue<TData>(
         </Badge>
       );
     }
+    case "options": {
+      if (value === null || value === undefined || value === "") {
+        return meta.emptyValue ?? DEFAULT_EMPTY_VALUE;
+      }
+      const optionItems = meta.options?.optionItems as
+        | DataGridOptionItem[]
+        | undefined;
+      const optionItem = findOptionItem(value, optionItems);
+      const resolvedLabel =
+        optionItem?.label ?? labels?.[String(value)] ?? String(value);
+      const optionDisplay = (meta.options?.optionDisplay as
+        | "badge"
+        | "text"
+        | undefined) ?? (optionItem?.variant ? "badge" : "text");
+
+      if (optionDisplay === "badge") {
+        const variant =
+          optionItem?.variant ??
+          badgeVariants?.[String(value)] ??
+          badgeDefaultVariant ??
+          "secondary";
+        return (
+          <Badge
+            variant={variant}
+            className={cn("inline-flex items-center gap-1", options?.className)}
+          >
+            {optionItem?.icon ? <span className="shrink-0">{optionItem.icon}</span> : null}
+            <span>{resolvedLabel}</span>
+          </Badge>
+        );
+      }
+
+      return (
+        <span className="inline-flex items-center gap-1">
+          {optionItem?.icon ? (
+            <span className="shrink-0 text-muted-foreground">{optionItem.icon}</span>
+          ) : null}
+          <span>{resolvedLabel}</span>
+        </span>
+      );
+    }
     case "badge": {
       if (!value) return meta.emptyValue ?? DEFAULT_EMPTY_VALUE;
       const variant =
@@ -422,6 +512,59 @@ function ColumnFilterInput<TData>({
           placeholder="חיפוש"
           className="h-8"
         />
+      );
+    }
+    case "options": {
+      const selectedOption = filterOptions?.find((option) =>
+        isSelectableOptionValue(option.value)
+          ? isOptionValueEqual(option.value, filterValue)
+          : false
+      );
+      const hasFilterValue = filterValue !== undefined && filterValue !== null;
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8">
+              {selectedOption ? selectedOption.label : "סינון"}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="max-h-64 w-48 overflow-y-auto">
+            {filterOptions?.map((option) => {
+              const isSelected = isSelectableOptionValue(option.value)
+                ? isOptionValueEqual(option.value, filterValue)
+                : false;
+              return (
+                <DropdownMenuItem
+                  key={String(option.value)}
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    column.setFilterValue(option.value);
+                  }}
+                  className={cn(
+                    "flex items-center justify-between gap-2",
+                    isSelected && "font-semibold"
+                  )}
+                >
+                  <span>{option.label}</span>
+                  {isSelected ? <Check className="h-4 w-4" /> : null}
+                </DropdownMenuItem>
+              );
+            })}
+            {hasFilterValue ? (
+              <>
+                <Separator className="my-1" />
+                <DropdownMenuItem
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    column.setFilterValue(undefined);
+                  }}
+                >
+                  נקה פילטרים
+                </DropdownMenuItem>
+              </>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
       );
     }
     case "lookup-multi": {
@@ -685,11 +828,19 @@ function buildRowActionCell<TData>(
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
-          {actions.map((action) => {
+          {actions.map((action, index) => {
             const disabled = typeof action.disabled === "function" ? action.disabled(row) : action.disabled;
+            const icon =
+              typeof action.icon === "function" ? action.icon(row) : action.icon;
+            const label =
+              typeof action.label === "function" ? action.label(row) : action.label;
+            const key =
+              typeof action.label === "string"
+                ? action.label
+                : `${action.actionType}-${index}`;
             return (
               <DropdownMenuItem
-                key={action.label}
+                key={key}
                 onSelect={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
@@ -699,8 +850,8 @@ function buildRowActionCell<TData>(
                 }}
                 className={cn(disabled && "pointer-events-none opacity-50", action.className)}
               >
-                {action.icon ? <span className="mr-2 inline-flex items-center">{action.icon}</span> : null}
-                {action.label}
+                {icon ? <span className="mr-2 inline-flex items-center">{icon}</span> : null}
+                {label}
               </DropdownMenuItem>
             );
           })}
@@ -711,11 +862,19 @@ function buildRowActionCell<TData>(
 
   return (
     <div className="flex items-center gap-2">
-      {actions.map((action) => {
+      {actions.map((action, index) => {
         const disabled = typeof action.disabled === "function" ? action.disabled(row) : action.disabled;
+        const icon =
+          typeof action.icon === "function" ? action.icon(row) : action.icon;
+        const label =
+          typeof action.label === "function" ? action.label(row) : action.label;
+        const key =
+          typeof action.label === "string"
+            ? action.label
+            : `${action.actionType}-${index}`;
         return (
           <Button
-            key={action.label}
+            key={key}
             variant={action.variant ?? "ghost"}
             size="sm"
             disabled={disabled}
@@ -727,8 +886,8 @@ function buildRowActionCell<TData>(
               }
             }}
           >
-            {action.icon ? <span className="mr-2 inline-flex items-center">{action.icon}</span> : null}
-            {action.label}
+            {icon ? <span className="mr-2 inline-flex items-center">{icon}</span> : null}
+            {label}
           </Button>
         );
       })}
@@ -746,6 +905,7 @@ interface UseDataGridColumnsProps<
   rowActions: DataGridRowAction<TData>[];
   rowActionsVariant: "icon" | "popover";
   rowActionsPosition: "left" | "right";
+  rowActionsLabel?: string;
 }
 
 export function useDataGridColumns<
@@ -758,6 +918,7 @@ export function useDataGridColumns<
   rowActions,
   rowActionsVariant,
   rowActionsPosition,
+  rowActionsLabel,
 }: UseDataGridColumnsProps<TData>): ColumnDef<TData, unknown>[] {
   return useMemo(() => {
     const baseColumns = columns.map((column) => {
@@ -799,6 +960,8 @@ export function useDataGridColumns<
             case "lookup":
             case "badge":
               return filterFns.text;
+            case "options":
+              return filterFns.exact;
             case "lookup-multi":
               return filterFns.oneOf;
             case "boolean":
@@ -822,7 +985,12 @@ export function useDataGridColumns<
           accessorKey: "__actions__",
           enableSorting: false,
           enableColumnFilter: false,
-          header: () => <span className="text-sm font-medium">פעולות</span>,
+          enableHiding: false,
+          enableResizing: false,
+          size: rowActionsVariant === "icon" ? 80 : 160,
+          header: () => (
+            <span className="text-sm font-medium">{rowActionsLabel ?? "פעולות"}</span>
+          ),
           cell: ({ row }) =>
             buildRowActionCell(row as Row<TData>, rowActions, rowActionsVariant),
           meta: {
@@ -880,6 +1048,7 @@ export function useDataGridColumns<
     data,
     disableSelect,
     rowActions,
+    rowActionsLabel,
     rowActionsPosition,
     rowActionsVariant,
     showSelectCol,
@@ -900,6 +1069,7 @@ function DataGrid<TData extends Record<string, unknown> = Record<string, unknown
   rowActions = [] as DataGridRowAction<TData>[],
   rowActionsVariant = "icon",
   rowActionsPosition = "right",
+  rowActionsLabel = "פעולות",
   headerActions,
   headerActionsPosition = "right",
   onRowClick,
@@ -943,6 +1113,7 @@ function DataGrid<TData extends Record<string, unknown> = Record<string, unknown
     rowActions,
     rowActionsVariant,
     rowActionsPosition,
+    rowActionsLabel,
   });
 
   const table = useReactTable<TData>({
@@ -1173,7 +1344,14 @@ function DataGrid<TData extends Record<string, unknown> = Record<string, unknown
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length + (showSelectCol ? 1 : 0)} className="h-36 text-center">
+                  <TableCell
+                    colSpan={
+                      columns.length +
+                      (showSelectCol ? 1 : 0) +
+                      (rowActions.length ? 1 : 0)
+                    }
+                    className="h-36 text-center"
+                  >
                     <Empty className="border-none">
                       <EmptyHeader>
                         <EmptyTitle>{noDataTitle ?? noDataMessage}</EmptyTitle>

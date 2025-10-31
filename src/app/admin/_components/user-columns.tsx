@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import type { DataGridColumnDef } from "@/components/ui/data-grid";
 import type { AdminUserRow } from "@/lib/admin-data";
 
-import { UserRowActions } from "./user-row-actions";
 import { UserIdentity } from "./user-identity";
 
 export const userColumns: DataGridColumnDef<AdminUserRow>[] = [
@@ -25,18 +24,15 @@ export const userColumns: DataGridColumnDef<AdminUserRow>[] = [
   {
     accessorKey: "role",
     header: "תפקיד",
-    type: "badge",
+    type: "options",
     meta: {
       align: "center",
       options: {
-        labels: {
-          admin: "מנהל",
-          user: "משתמש",
-        },
-        variants: {
-          admin: "default",
-          user: "secondary",
-        },
+        optionDisplay: "badge",
+        optionItems: [
+          { value: "admin", label: "מנהל", variant: "default" },
+          { value: "user", label: "משתמש", variant: "secondary" },
+        ],
       },
     },
   },
@@ -103,20 +99,5 @@ export const userColumns: DataGridColumnDef<AdminUserRow>[] = [
     header: "פעילות אחרונה",
     type: "datetime",
     meta: { align: "center", emptyValue: "—", options: { dateFormat: "relative" } },
-  },
-  {
-    id: "actions",
-    accessorKey: "id",
-    header: "פעולות",
-    type: "custom",
-    enableSorting: false,
-    enableFiltering: false,
-    enableHiding: false,
-    meta: { align: "center", sticky: "right" },
-    cell: (user) => (
-      <div className="flex justify-end">
-        <UserRowActions user={user} />
-      </div>
-    ),
   },
 ];

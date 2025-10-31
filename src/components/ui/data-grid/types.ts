@@ -1,4 +1,4 @@
-import { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import {
   ColumnFiltersState,
   GroupingState,
@@ -48,6 +48,14 @@ export interface DataGridColumnOptions {
    */
   className?: string;
   /**
+   * Explicit option items for option based columns.
+   */
+  optionItems?: DataGridOptionItem[];
+  /**
+   * Presentation mode for option columns.
+   */
+  optionDisplay?: "badge" | "text";
+  /**
    * Number formatting configuration for numeric columns.
    */
   format?: "currency" | "number" | "duration" | "percentage";
@@ -58,6 +66,10 @@ export interface DataGridColumnOptions {
     low?: number;
   };
   /**
+   * Currency code to use when formatting currency values.
+   */
+  currency?: string;
+  /**
    * Date formatting configuration for date and datetime columns.
    */
   dateFormat?: "short" | "long" | "relative";
@@ -67,6 +79,13 @@ export interface DataGridColumnOptions {
   [key: string]: unknown;
 }
 
+export interface DataGridOptionItem {
+  value: string | number | boolean;
+  label: string;
+  icon?: ReactNode;
+  variant?: DataGridBadgeVariant;
+}
+
 export type DataGridColumnType =
   | "text"
   | "image"
@@ -74,6 +93,7 @@ export type DataGridColumnType =
   | "text-copy"
   | "lookup"
   | "lookup-multi"
+  | "options"
   | "number"
   | "currency"
   | "date"
@@ -150,9 +170,9 @@ export type DataGridRowAction<TData extends Record<string, unknown> = Record<str
   "disabled"
 > & {
   actionType: "edit" | "delete" | "view" | "custom";
-  label: string;
+  label: string | ((row: Row<TData>) => ReactNode);
   onClick: (row: Row<TData>) => void;
-  icon?: React.ReactNode;
+  icon?: ReactNode | ((row: Row<TData>) => ReactNode);
   disabled?: boolean | ((row: Row<TData>) => boolean);
   variant?:
     | "default"
@@ -201,6 +221,7 @@ export interface DataGridProps<TData extends Record<string, unknown> = Record<st
   rowActions?: DataGridRowAction<TData>[];
   rowActionsVariant?: "icon" | "popover";
   rowActionsPosition?: "left" | "right";
+  rowActionsLabel?: string;
   headerActionsPosition?: "left" | "right" | "center";
   headerActions?: (table: Table<TData>) => DataGridHeaderAction[];
   onRowClick?: (row: Row<TData>) => void;

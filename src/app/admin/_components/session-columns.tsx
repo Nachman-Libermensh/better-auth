@@ -45,18 +45,15 @@ export const sessionColumns: DataGridColumnDef<AdminSessionRow>[] = [
   {
     accessorKey: "status",
     header: "סטטוס",
-    type: "badge",
+    type: "options",
     meta: {
       align: "center",
       options: {
-        labels: {
-          ACTIVE: "פעיל",
-          EXPIRED: "פג",
-        },
-        variants: {
-          ACTIVE: "default",
-          EXPIRED: "outline",
-        },
+        optionDisplay: "badge",
+        optionItems: [
+          { value: "ACTIVE", label: "פעיל", variant: "default" },
+          { value: "EXPIRED", label: "פג", variant: "outline" },
+        ],
       },
     },
   },
