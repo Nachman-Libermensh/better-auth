@@ -518,7 +518,6 @@ function ColumnFilterInput<TData>({
   column,
   columnDef,
   filterOptions,
-  meta,
 }: DataGridColumnHeaderProps<TData>) {
   if (columnDef.enableFiltering === false) {
     return null;
@@ -611,6 +610,9 @@ function ColumnFilterInput<TData>({
     case "lookup-multi": {
       return renderOptionsCommand();
     }
+    case "boolean": {
+      return renderOptionsCommand();
+    }
     case "number":
     case "currency": {
       const rangeValue =
@@ -661,30 +663,6 @@ function ColumnFilterInput<TData>({
             className="h-8"
           />
         </div>
-      );
-    }
-    case "boolean": {
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8">
-              {filterValue === undefined || filterValue === ""
-                ? "הכל"
-                : getBooleanLabel(filterValue as boolean, meta)}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => column.setFilterValue(true)}>
-              {getBooleanLabel(true, meta)}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => column.setFilterValue(false)}>
-              {getBooleanLabel(false, meta)}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => column.setFilterValue(undefined)}>
-              איפוס
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       );
     }
     default:
@@ -779,13 +757,9 @@ function DataGridColumnHeader<TData>({
             <TooltipTrigger asChild>
               <PopoverTrigger asChild>
                 <Button
-                  variant="ghost"
+                  variant={hasFilterValue ? "destructive" : "ghost"}
                   size="icon"
-                  className={cn(
-                    "h-8 w-8 text-muted-foreground",
-                    hasFilterValue &&
-                      "bg-primary/10 text-primary hover:bg-primary/20 ring-1 ring-primary/60"
-                  )}
+                  className="h-8 w-8 p-0 text-muted-foreground"
                   onClick={(event) => event.stopPropagation()}
                   aria-pressed={hasFilterValue}
                 >
@@ -797,26 +771,84 @@ function DataGridColumnHeader<TData>({
               {tooltipLabel}
             </TooltipContent>
           </Tooltip>
-          <PopoverContent align="center" className="w-80 space-y-3" dir="rtl" sideOffset={8}>
-            <div className="flex items-center justify-between">
+          <PopoverContent align="center" className="w-80 space-y-4" dir="rtl" sideOffset={8}>
+            <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium">{columnDef.header}</span>
-              {hasFilterValue ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2"
-                  onClick={() => column.setFilterValue(undefined)}
-                >
-                  איפוס
-                </Button>
-              ) : null}
+              <div className="flex items-center gap-2">
+                {sorted ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2"
+                    onClick={() => column.clearSorting()}
+                  >
+                    איפוס מיון
+                  </Button>
+                ) : null}
+                {hasFilterValue ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2"
+                    onClick={() => column.setFilterValue(undefined)}
+                  >
+                    איפוס סינון
+                  </Button>
+                ) : null}
+              </div>
             </div>
-            <ColumnFilterInput
-              column={column}
-              columnDef={columnDef}
-              filterOptions={filterOptions}
-              meta={meta}
-            />
+            {canSort ? (
+              <div className="space-y-2">
+                <span className="text-xs font-medium text-muted-foreground">אפשרויות מיון</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant={sorted === "asc" ? "default" : "outline"}
+                    size="sm"
+                    className="h-8 flex-1"
+                    onClick={() => {
+                      if (sorted !== "asc") {
+                        column.toggleSorting(false);
+                      }
+                    }}
+                  >
+                    מיון עולה
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={sorted === "desc" ? "default" : "outline"}
+                    size="sm"
+                    className="h-8 flex-1"
+                    onClick={() => {
+                      if (sorted !== "desc") {
+                        column.toggleSorting(true);
+                      }
+                    }}
+                  >
+                    מיון יורד
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 flex-1"
+                    onClick={() => column.clearSorting()}
+                    disabled={!sorted}
+                  >
+                    איפוס
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+            <div className="space-y-2">
+              <span className="text-xs font-medium text-muted-foreground">אפשרויות סינון</span>
+              <ColumnFilterInput
+                column={column}
+                columnDef={columnDef}
+                filterOptions={filterOptions}
+                meta={meta}
+              />
+            </div>
           </PopoverContent>
         </Popover>
       ) : null}
