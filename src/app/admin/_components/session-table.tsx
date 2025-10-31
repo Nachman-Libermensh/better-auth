@@ -1,6 +1,6 @@
 "use client";
 
-import { DataTable } from "@/components/ui/data-table";
+import { DataGrid } from "@/components/ui/data-grid";
 import type { AdminSessionRow } from "@/lib/admin-data";
 
 import { sessionColumns } from "./session-columns";
@@ -17,15 +17,16 @@ export function SessionTable({
   scrollAreaClassName?: string;
 }) {
   return (
-    <DataTable
+    <DataGrid
       columns={sessionColumns}
       data={data}
-      searchKey={enableSearch ? "userName" : undefined}
-      searchPlaceholder={
-        enableSearch ? "חיפוש לפי משתמש או סטטוס" : undefined
-      }
       className={className}
       scrollAreaClassName={scrollAreaClassName}
+      showHeaderActions={enableSearch}
+      showSearch={enableSearch}
+      rowId="id"
+      noDataMessage="לא נמצאו סשנים"
+      initialSorting={[{ id: "createdAt", desc: true }]}
     />
   );
 }

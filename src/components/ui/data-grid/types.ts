@@ -154,6 +154,8 @@ type PaginationConfig = {
 export interface DataGridProps<TData extends Record<string, unknown> = Record<string, unknown>> {
   columns: DataGridColumnDef<TData>[];
   data: TData[] | undefined;
+  className?: string;
+  scrollAreaClassName?: string;
   title?: string | React.ReactNode;
   status?: DataGridStatus;
   noDataMessage?: string;

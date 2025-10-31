@@ -1,10 +1,9 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import { differenceInMinutes } from "date-fns";
 
 import { Badge } from "@/components/ui/badge";
-import { formatDateTime } from "@/lib/format";
+import type { DataGridColumnDef } from "@/components/ui/data-grid";
 import type { AdminSessionRow } from "@/lib/admin-data";
 
 import { UserIdentity } from "./user-identity";
@@ -28,35 +27,37 @@ const formatDuration = (row: AdminSessionRow) => {
   return `${hours} ש' ${restMinutes} דק'`;
 };
 
-export const sessionColumns: ColumnDef<AdminSessionRow>[] = [
+export const sessionColumns: DataGridColumnDef<AdminSessionRow>[] = [
   {
     accessorKey: "userName",
     header: "משתמש",
-    filterFn: (row, columnId, filterValue) => {
-      const value = String(filterValue).toLowerCase();
-      const { userName, userEmail } = row.original;
-      return (
-        (userName ?? "").toLowerCase().includes(value) ||
-        (userEmail ?? "").toLowerCase().includes(value)
-      );
-    },
-    cell: ({ row }) => {
-      const { userName, userEmail, userImage } = row.original;
-      return (
-        <UserIdentity
-          name={userName || null}
-          email={userEmail || null}
-          image={userImage}
-        />
-      );
-    },
+    type: "custom",
+    meta: { align: "left" },
+    cell: (session) => (
+      <UserIdentity
+        name={session.userName || null}
+        email={session.userEmail || null}
+        image={session.userImage}
+        primaryClassName="text-sm font-medium"
+        secondaryClassName="text-xs text-muted-foreground"
+      />
+    ),
   },
   {
     accessorKey: "status",
     header: "סטטוס",
-    cell: ({ row }) => {
-      const { status } = row.original;
-      const isActive = status === "ACTIVE";
+    type: "badge",
+    meta: {
+      align: "center",
+      options: {
+        variants: {
+          ACTIVE: "default",
+          EXPIRED: "outline",
+        },
+      },
+    },
+    cell: (session) => {
+      const isActive = session.status === "ACTIVE";
       return (
         <Badge variant={isActive ? "default" : "outline"}>
           {isActive ? "פעיל" : "פג"}
@@ -67,40 +68,43 @@ export const sessionColumns: ColumnDef<AdminSessionRow>[] = [
   {
     accessorKey: "token",
     header: "טוקן",
-    cell: ({ row }) => {
-      const token = row.original.token;
-      if (!token) return "—";
-      return `${token.slice(0, 8)}...`;
-    },
+    type: "text-copy",
+    enableSorting: false,
+    meta: { align: "left" },
   },
   {
     accessorKey: "ipAddress",
     header: "כתובת IP",
-    cell: ({ row }) => row.original.ipAddress ?? "—",
+    type: "text",
+    meta: { align: "center", emptyValue: "—" },
   },
   {
     accessorKey: "userAgent",
     header: "דפדפן",
-    cell: ({ row }) => (
-      <span className="line-clamp-2 max-w-[240px] text-xs">
-        {row.original.userAgent ?? "—"}
-      </span>
-    ),
+    type: "text-long",
+    enableSorting: false,
+    meta: { align: "left", emptyValue: "—" },
   },
   {
     accessorKey: "createdAt",
     header: "נוצר",
-    cell: ({ row }) => formatDateTime(row.original.createdAt),
+    type: "datetime",
+    meta: { align: "center", options: { dateFormat: "short" } },
   },
   {
     accessorKey: "expiresAt",
     header: "פג",
-    cell: ({ row }) => formatDateTime(row.original.expiresAt),
+    type: "datetime",
+    meta: { align: "center", options: { dateFormat: "short" } },
   },
   {
     id: "duration",
+    accessorKey: "expiresAt",
     header: "משך הסשן",
-    accessorFn: (row) => formatDuration(row),
-    cell: ({ row }) => formatDuration(row.original),
+    type: "custom",
+    enableSorting: false,
+    enableFiltering: false,
+    meta: { align: "center", emptyValue: "—" },
+    cell: (session) => formatDuration(session),
   },
 ];

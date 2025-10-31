@@ -1,104 +1,120 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
-
 import { Badge } from "@/components/ui/badge";
-import { formatDateTime } from "@/lib/format";
+import type { DataGridColumnDef } from "@/components/ui/data-grid";
 import type { AdminUserRow } from "@/lib/admin-data";
 
 import { UserRowActions } from "./user-row-actions";
 import { UserIdentity } from "./user-identity";
 
-export const userColumns: ColumnDef<AdminUserRow>[] = [
+export const userColumns: DataGridColumnDef<AdminUserRow>[] = [
   {
     accessorKey: "name",
-    header: "שם",
-    filterFn: (row, columnId, filterValue) => {
-      const value = String(filterValue).toLowerCase();
-      const { name, email } = row.original;
-      return (
-        (name ?? "").toLowerCase().includes(value) ||
-        (email ?? "").toLowerCase().includes(value)
-      );
-    },
-    cell: ({ row }) => {
-      const { name, email, image } = row.original;
-      return <UserIdentity name={name} email={email} image={image} />;
-    },
+    header: "משתמש",
+    type: "custom",
+    meta: { align: "left" },
+    cell: (user) => (
+      <UserIdentity
+        name={user.name}
+        email={user.email}
+        image={user.image}
+        primaryClassName="text-sm font-medium"
+      />
+    ),
   },
   {
     accessorKey: "role",
     header: "תפקיד",
-    cell: ({ row }) => {
-      const isAdmin = row.original.roles.includes("admin");
-      const variant = isAdmin ? "default" : "secondary";
-      const label = isAdmin ? "מנהל" : "משתמש";
-      return <Badge variant={variant}>{label}</Badge>;
+    type: "badge",
+    meta: {
+      align: "center",
+      options: {
+        variants: {
+          admin: "default",
+          user: "secondary",
+        },
+      },
+    },
+    cell: (user) => {
+      const isAdmin = user.roles.includes("admin");
+      return (
+        <Badge variant={isAdmin ? "default" : "secondary"}>
+          {isAdmin ? "מנהל" : "משתמש"}
+        </Badge>
+      );
     },
   },
   {
-    id: "banStatus",
+    accessorKey: "banned",
     header: "חסימה",
-    cell: ({ row }) => {
-      if (row.original.banned) {
-        return <Badge variant="destructive">חסום</Badge>;
-      }
-
-      return <Badge variant="default">פעיל</Badge>;
-    },
-    sortingFn: (a, b) => Number(b.original.banned) - Number(a.original.banned),
+    type: "boolean",
+    meta: { align: "center" },
+    cell: (user) => (
+      <Badge variant={user.banned ? "destructive" : "secondary"}>
+        {user.banned ? "חסום" : "פעיל"}
+      </Badge>
+    ),
   },
   {
     id: "status",
+    accessorKey: "activeSessions",
     header: "סטטוס",
-    accessorFn: (row) => (row.activeSessions > 0 ? "מחובר" : "מנותק"),
-    cell: ({ row }) => {
-      const isActive = row.original.activeSessions > 0;
+    type: "custom",
+    enableSorting: false,
+    enableFiltering: false,
+    meta: { align: "center" },
+    cell: (user) => {
+      const isActive = user.activeSessions > 0;
       return (
         <Badge variant={isActive ? "default" : "outline"}>
           {isActive ? "מחובר" : "מנותק"}
         </Badge>
       );
     },
-    sortingFn: (a, b) => {
-      const aActive = a.original.activeSessions > 0;
-      const bActive = b.original.activeSessions > 0;
-      return Number(bActive) - Number(aActive);
-    },
   },
   {
     accessorKey: "activeSessions",
     header: "סשנים פעילים",
+    type: "number",
+    meta: { align: "center" },
   },
   {
     accessorKey: "totalSessions",
     header: "סה\"כ סשנים",
+    type: "number",
+    meta: { align: "center" },
   },
   {
     accessorKey: "banExpiresAt",
     header: "תוקף חסימה",
-    cell: ({ row }) =>
-      row.original.banExpiresAt ? formatDateTime(row.original.banExpiresAt) : "—",
+    type: "datetime",
+    meta: { align: "center", emptyValue: "—", options: { dateFormat: "short" } },
   },
   {
     accessorKey: "createdAt",
     header: "נוצר בתאריך",
-    cell: ({ row }) => formatDateTime(row.original.createdAt),
+    type: "datetime",
+    meta: { align: "center", options: { dateFormat: "short" } },
   },
   {
     accessorKey: "lastActiveAt",
     header: "פעילות אחרונה",
-    cell: ({ row }) => formatDateTime(row.original.lastActiveAt),
+    type: "datetime",
+    meta: { align: "center", emptyValue: "—", options: { dateFormat: "relative" } },
   },
   {
     id: "actions",
-    header: "",
-    cell: ({ row }) => (
+    accessorKey: "id",
+    header: "פעולות",
+    type: "custom",
+    enableSorting: false,
+    enableFiltering: false,
+    enableHiding: false,
+    meta: { align: "center", sticky: "right" },
+    cell: (user) => (
       <div className="flex justify-end">
-        <UserRowActions user={row.original} />
+        <UserRowActions user={user} />
       </div>
     ),
-    enableSorting: false,
-    enableHiding: false,
   },
 ];

@@ -648,6 +648,8 @@ function buildRowActionCell<TData>(
 function DataGrid<TData extends Record<string, unknown> = Record<string, unknown>>({
   columns,
   data = [] as TData[],
+  className,
+  scrollAreaClassName,
   title,
   status = "success",
   noDataMessage = "לא נמצאו נתונים",
@@ -956,10 +958,16 @@ function DataGrid<TData extends Record<string, unknown> = Record<string, unknown
   const canNext = currentPage < effectiveTotalPages;
 
   return (
-    <div className={cn("space-y-4", variant === "minimal" && "border-none bg-transparent")}>
+    <div
+      className={cn(
+        "space-y-4",
+        variant === "minimal" && "border-none bg-transparent",
+        className
+      )}
+    >
       {headerActionsSection}
       <div className="overflow-hidden rounded-md border bg-background">
-        <ScrollArea>
+        <ScrollArea className={cn("w-full", scrollAreaClassName)}>
           <UiTable className="min-w-full">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
