@@ -20,15 +20,13 @@ model User {
   email         String
   emailVerified Boolean   @default(false)
   image         String?
-  role          Role       @default(USER)
-  /// Required by the Better Auth admin plugin to track user bans.
-  banned        Boolean    @default(false)
-  /// Optional administrative context for user bans.
-  banReason     String?
-  /// Timestamp for when a temporary ban should expire.
-  banExpires    DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @default(now()) @updatedAt
+  role          String?   @default("user")
+  banned        Boolean?  @default(false)
+  banReason     String?
+  banExpires    DateTime?
+
   sessions      Session[]
   accounts      Account[]
 
@@ -37,15 +35,16 @@ model User {
 }
 
 model Session {
-  id        String   @id
-  expiresAt DateTime
-  token     String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  ipAddress String?
-  userAgent String?
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String   @id
+  expiresAt      DateTime
+  token          String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  ipAddress      String?
+  userAgent      String?
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  impersonatedBy String?
 
   @@unique([token])
   @@map("session")
@@ -80,9 +79,3 @@ model Verification {
 
   @@map("verification")
 }
-
-enum Role {
-  USER
-  ADMIN
-}
-
