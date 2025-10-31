@@ -27,8 +27,6 @@ model User {
   banReason     String?
   /// Timestamp for when a temporary ban should expire.
   banExpires    DateTime?
-  status        UserStatus @default(ACTIVE)
-  deletedAt     DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @default(now()) @updatedAt
   sessions      Session[]
@@ -88,7 +86,3 @@ enum Role {
   ADMIN
 }
 
-enum UserStatus {
-  ACTIVE
-  INACTIVE
-}

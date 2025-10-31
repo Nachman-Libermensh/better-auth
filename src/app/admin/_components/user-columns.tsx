@@ -37,33 +37,16 @@ export const userColumns: ColumnDef<AdminUserRow>[] = [
     },
   },
   {
-    id: "accountStatus",
-    header: "מצב חשבון",
+    id: "banStatus",
+    header: "חסימה",
     cell: ({ row }) => {
-      if (row.original.isDeleted) {
-        return <Badge variant="destructive">נמחק</Badge>;
+      if (row.original.banned) {
+        return <Badge variant="destructive">חסום</Badge>;
       }
 
-      const isInactive = row.original.status === "INACTIVE";
-      return (
-        <Badge variant={isInactive ? "outline" : "default"}>
-          {isInactive ? "לא פעיל" : "פעיל"}
-        </Badge>
-      );
+      return <Badge variant="default">פעיל</Badge>;
     },
-    sortingFn: (a, b) => {
-      const aWeight = a.original.isDeleted
-        ? 0
-        : a.original.status === "ACTIVE"
-        ? 2
-        : 1;
-      const bWeight = b.original.isDeleted
-        ? 0
-        : b.original.status === "ACTIVE"
-        ? 2
-        : 1;
-      return bWeight - aWeight;
-    },
+    sortingFn: (a, b) => Number(b.original.banned) - Number(a.original.banned),
   },
   {
     id: "status",
@@ -90,6 +73,12 @@ export const userColumns: ColumnDef<AdminUserRow>[] = [
   {
     accessorKey: "totalSessions",
     header: "סה\"כ סשנים",
+  },
+  {
+    accessorKey: "banExpiresAt",
+    header: "תוקף חסימה",
+    cell: ({ row }) =>
+      row.original.banExpiresAt ? formatDateTime(row.original.banExpiresAt) : "—",
   },
   {
     accessorKey: "createdAt",

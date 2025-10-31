@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { Archive, LogOut, MoreVertical, Power, Undo2 } from "lucide-react";
+import { AlertTriangle, LogOut, MoreVertical, ShieldX } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -27,20 +27,19 @@ import {
 import type { AdminUserRow } from "@/lib/admin-data";
 
 import {
-  disconnectUserSessionsAction,
-  restoreUserAction,
-  softDeleteUserAction,
-  updateUserStatusAction,
+  banUserAction,
+  removeUserAction,
+  revokeUserSessionsAction,
+  unbanUserAction,
 } from "../users/actions";
 
 export function UserRowActions({ user }: { user: AdminUserRow }) {
   const [isPending, startTransition] = useTransition();
-  const isInactive = user.status === "INACTIVE";
-  const disableStatusToggle = user.isDeleted;
+  const isBanned = user.banned;
 
   const handleDisconnect = () => {
     startTransition(async () => {
-      const result = await disconnectUserSessionsAction({ userId: user.id });
+      const result = await revokeUserSessionsAction({ userId: user.id });
       if (!result.success) {
         toast.error(result.error ?? "אירעה שגיאה בעת ניתוק המשתמש");
         return;
@@ -49,46 +48,30 @@ export function UserRowActions({ user }: { user: AdminUserRow }) {
     });
   };
 
-  const handleToggleStatus = () => {
-    if (disableStatusToggle) {
-      return;
-    }
-
+  const handleBanToggle = () => {
     startTransition(async () => {
-      const nextStatus = isInactive ? "ACTIVE" : "INACTIVE";
-      const result = await updateUserStatusAction({
-        userId: user.id,
-        status: nextStatus,
-      });
-
+      const result = isBanned
+        ? await unbanUserAction({ userId: user.id })
+        : await banUserAction({ userId: user.id });
       if (!result.success) {
-        toast.error(result.error ?? "אירעה שגיאה בעת עדכון הסטטוס");
+        toast.error(result.error ?? "אירעה שגיאה בעת עדכון החסימה");
         return;
       }
-
-      toast.success(result.message ?? "סטטוס המשתמש עודכן");
+      toast.success(
+        result.message ??
+          (isBanned ? "המשתמש שוחרר מהחסימה" : "המשתמש נחסם בהצלחה")
+      );
     });
   };
 
-  const handleRestore = () => {
+  const handleRemove = () => {
     startTransition(async () => {
-      const result = await restoreUserAction({ userId: user.id });
+      const result = await removeUserAction({ userId: user.id });
       if (!result.success) {
-        toast.error(result.error ?? "אירעה שגיאה בעת שחזור המשתמש");
+        toast.error(result.error ?? "אירעה שגיאה בעת הסרת המשתמש");
         return;
       }
-      toast.success(result.message ?? "המשתמש שוחזר בהצלחה");
-    });
-  };
-
-  const handleSoftDelete = () => {
-    startTransition(async () => {
-      const result = await softDeleteUserAction({ userId: user.id });
-      if (!result.success) {
-        toast.error(result.error ?? "אירעה שגיאה בעת מחיקת המשתמש");
-        return;
-      }
-      toast.success(result.message ?? "המשתמש הוסר בהצלחה");
+      toast.success(result.message ?? "המשתמש הוסר מהמערכת");
     });
   };
 
@@ -124,85 +107,49 @@ export function UserRowActions({ user }: { user: AdminUserRow }) {
         <DropdownMenuItem
           onSelect={(event) => {
             event.preventDefault();
-            handleToggleStatus();
+            handleBanToggle();
           }}
-          disabled={isPending || disableStatusToggle}
+          disabled={isPending}
         >
-          <Power className="ml-2 size-4" />
-          {isInactive ? "סימון כפעיל" : "סימון כלא פעיל"}
+          <ShieldX className="ml-2 size-4" />
+          {isBanned ? "שחרור חסימה" : "חסימת משתמש"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        {user.isDeleted ? (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <DropdownMenuItem
-                onSelect={(event) => event.preventDefault()}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <DropdownMenuItem
+              onSelect={(event) => event.preventDefault()}
+              disabled={isPending}
+            >
+              <AlertTriangle className="ml-2 size-4" />
+              מחיקת משתמש
+            </DropdownMenuItem>
+          </AlertDialogTrigger>
+          <AlertDialogContent dir="rtl">
+            <AlertDialogHeader className="text-right">
+              <AlertDialogTitle>מחיקת משתמש</AlertDialogTitle>
+              <AlertDialogDescription>
+                המשתמש יימחק לצמיתות וכל הסשנים הפעילים שלו יבוטלו. הפעולה
+                אינה ניתנת לשחזור.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-row-reverse gap-2">
+              <AlertDialogAction
+                onClick={(event) => {
+                  event.preventDefault();
+                  handleRemove();
+                }}
                 disabled={isPending}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                <Undo2 className="ml-2 size-4" />
-                שחזור משתמש
-              </DropdownMenuItem>
-            </AlertDialogTrigger>
-            <AlertDialogContent dir="rtl">
-              <AlertDialogHeader className="text-right">
-                <AlertDialogTitle>שחזור משתמש</AlertDialogTitle>
-                <AlertDialogDescription>
-                  המשתמש יוחזר לפעילות מלאה. האם להמשיך?
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter className="flex-row-reverse gap-2">
-                <AlertDialogAction
-                  onClick={(event) => {
-                    event.preventDefault();
-                    handleRestore();
-                  }}
-                  disabled={isPending}
-                >
-                  שחזור
-                </AlertDialogAction>
-                <AlertDialogCancel disabled={isPending}>
-                  ביטול
-                </AlertDialogCancel>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        ) : (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <DropdownMenuItem
-                onSelect={(event) => event.preventDefault()}
-                disabled={isPending}
-              >
-                <Archive className="ml-2 size-4" />
-                מחיקה רכה
-              </DropdownMenuItem>
-            </AlertDialogTrigger>
-            <AlertDialogContent dir="rtl">
-              <AlertDialogHeader className="text-right">
-                <AlertDialogTitle>מחיקת משתמש</AlertDialogTitle>
-                <AlertDialogDescription>
-                  המשתמש יסומן כמחוק וכל הסשנים הפעילים שלו ינותקו. ניתן לשחזר
-                  בכל עת.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter className="flex-row-reverse gap-2">
-                <AlertDialogAction
-                  onClick={(event) => {
-                    event.preventDefault();
-                    handleSoftDelete();
-                  }}
-                  disabled={isPending}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  מחיקה רכה
-                </AlertDialogAction>
-                <AlertDialogCancel disabled={isPending}>
-                  ביטול
-                </AlertDialogCancel>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
+                מחיקת משתמש
+              </AlertDialogAction>
+              <AlertDialogCancel disabled={isPending}>
+                ביטול
+              </AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DropdownMenuContent>
     </DropdownMenu>
   );

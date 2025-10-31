@@ -5,11 +5,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
-import { prisma, type Prisma, type UserStatus } from "@/lib/prisma";
-
-function userUpdateData(data: Record<string, unknown>) {
-  return data as unknown as Prisma.UserUpdateInput;
-}
+import { prisma } from "@/lib/prisma";
 
 const createUserSchema = z.object({
   name: z.string().min(2, "שם קצר מדי"),
@@ -27,14 +23,10 @@ const userIdSchema = z.object({
   userId: z.string().min(1),
 });
 
-const userStatusValues = [
-  "ACTIVE",
-  "INACTIVE",
-] as const satisfies readonly UserStatus[];
-
-const updateStatusSchema = z.object({
+const banUserSchema = z.object({
   userId: z.string().min(1),
-  status: z.enum(userStatusValues),
+  banReason: z.string().min(1).optional(),
+  banExpiresIn: z.number().int().positive().optional(),
 });
 
 export type AdminActionResult = {
@@ -97,20 +89,12 @@ export async function createUserAction(
       };
     }
 
-    const response = await auth.api.createUser({
+    await auth.api.createUser({
       headers: requestHeaders,
       body: {
         ...parsed.data,
         role: parsed.data.role.toLowerCase() as "user" | "admin",
       },
-    });
-
-    await prisma.user.update({
-      where: { id: response.user.id },
-      data: userUpdateData({
-        status: "ACTIVE",
-        deletedAt: null,
-      }),
     });
 
     await refreshAdminData();
@@ -130,11 +114,11 @@ export async function createUserAction(
   }
 }
 
-export async function disconnectUserSessionsAction(
+export async function revokeUserSessionsAction(
   input: z.infer<typeof userIdSchema>
 ): Promise<AdminActionResult> {
   try {
-    await requireAdminSession();
+    const { headers: requestHeaders } = await requireAdminSession();
     const parsed = userIdSchema.safeParse(input);
 
     if (!parsed.success) {
@@ -144,8 +128,11 @@ export async function disconnectUserSessionsAction(
       };
     }
 
-    await prisma.session.deleteMany({
-      where: { userId: parsed.data.userId },
+    await auth.api.revokeUserSessions({
+      headers: requestHeaders,
+      body: {
+        userId: parsed.data.userId,
+      },
     });
 
     await refreshAdminData();
@@ -165,11 +152,91 @@ export async function disconnectUserSessionsAction(
   }
 }
 
-export async function softDeleteUserAction(
+export async function banUserAction(
+  input: z.infer<typeof banUserSchema>
+): Promise<AdminActionResult> {
+  try {
+    const { session, headers: requestHeaders } = await requireAdminSession();
+    const parsed = banUserSchema.safeParse(input);
+
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: "הנתונים שסופקו אינם תקינים",
+      };
+    }
+
+    await ensureCanDisableTarget(session.user.id, parsed.data.userId);
+
+    await auth.api.banUser({
+      headers: requestHeaders,
+      body: {
+        userId: parsed.data.userId,
+        banReason: parsed.data.banReason,
+        banExpiresIn: parsed.data.banExpiresIn,
+      },
+    });
+
+    await refreshAdminData();
+
+    return {
+      success: true,
+      message: "המשתמש נחסם והסשנים בוטלו",
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "אירעה שגיאה בעת חסימת המשתמש";
+
+    return {
+      success: false,
+      error: message,
+    };
+  }
+}
+
+export async function unbanUserAction(
   input: z.infer<typeof userIdSchema>
 ): Promise<AdminActionResult> {
   try {
-    const { session } = await requireAdminSession();
+    const { headers: requestHeaders } = await requireAdminSession();
+    const parsed = userIdSchema.safeParse(input);
+
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: "מזהה המשתמש אינו תקין",
+      };
+    }
+
+    await auth.api.unbanUser({
+      headers: requestHeaders,
+      body: {
+        userId: parsed.data.userId,
+      },
+    });
+
+    await refreshAdminData();
+
+    return {
+      success: true,
+      message: "המשתמש שוחרר מהחסימה",
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "אירעה שגיאה בעת שחרור החסימה";
+
+    return {
+      success: false,
+      error: message,
+    };
+  }
+}
+
+export async function removeUserAction(
+  input: z.infer<typeof userIdSchema>
+): Promise<AdminActionResult> {
+  try {
+    const { session, headers: requestHeaders } = await requireAdminSession();
     const parsed = userIdSchema.safeParse(input);
 
     if (!parsed.success) {
@@ -181,119 +248,22 @@ export async function softDeleteUserAction(
 
     await ensureCanDisableTarget(session.user.id, parsed.data.userId);
 
-    await prisma.$transaction([
-      prisma.session.deleteMany({
-        where: { userId: parsed.data.userId },
-      }),
-      prisma.user.update({
-        where: { id: parsed.data.userId },
-        data: userUpdateData({
-          status: "INACTIVE",
-          deletedAt: new Date(),
-        }),
-      }),
-    ]);
-
-    await refreshAdminData();
-
-    return {
-      success: true,
-      message: "המשתמש הועבר למחיקה רכה והסשנים נותקו",
-    };
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "אירעה שגיאה בעת מחיקת המשתמש";
-
-    return {
-      success: false,
-      error: message,
-    };
-  }
-}
-
-export async function restoreUserAction(
-  input: z.infer<typeof userIdSchema>
-): Promise<AdminActionResult> {
-  try {
-    await requireAdminSession();
-    const parsed = userIdSchema.safeParse(input);
-
-    if (!parsed.success) {
-      return {
-        success: false,
-        error: "מזהה המשתמש אינו תקין",
-      };
-    }
-
-    await prisma.user.update({
-      where: { id: parsed.data.userId },
-      data: userUpdateData({
-        status: "ACTIVE",
-        deletedAt: null,
-      }),
+    await auth.api.removeUser({
+      headers: requestHeaders,
+      body: {
+        userId: parsed.data.userId,
+      },
     });
 
     await refreshAdminData();
 
     return {
       success: true,
-      message: "המשתמש שוחזר בהצלחה",
+      message: "המשתמש הוסר לחלוטין מהמערכת",
     };
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "אירעה שגיאה בעת שחזור המשתמש";
-
-    return {
-      success: false,
-      error: message,
-    };
-  }
-}
-
-export async function updateUserStatusAction(
-  input: z.infer<typeof updateStatusSchema>
-): Promise<AdminActionResult> {
-  try {
-    const { session } = await requireAdminSession();
-    const parsed = updateStatusSchema.safeParse(input);
-
-    if (!parsed.success) {
-      return {
-        success: false,
-        error: "הנתונים שסופקו אינם תקינים",
-      };
-    }
-
-    if (parsed.data.status === "INACTIVE") {
-      await ensureCanDisableTarget(session.user.id, parsed.data.userId);
-    }
-
-    await prisma.user.update({
-      where: { id: parsed.data.userId },
-      data: userUpdateData({
-        status: parsed.data.status,
-        ...(parsed.data.status === "ACTIVE" ? { deletedAt: null } : {}),
-      }),
-    });
-
-    if (parsed.data.status === "INACTIVE") {
-      await prisma.session.deleteMany({
-        where: { userId: parsed.data.userId },
-      });
-    }
-
-    await refreshAdminData();
-
-    return {
-      success: true,
-      message:
-        parsed.data.status === "ACTIVE"
-          ? "המשתמש סומן כפעיל"
-          : "המשתמש סומן כלא פעיל והסשנים נותקו",
-    };
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "אירעה שגיאה בעת עדכון הסטטוס";
+      error instanceof Error ? error.message : "אירעה שגיאה בעת הסרת המשתמש";
 
     return {
       success: false,

@@ -38,7 +38,7 @@ export default async function AdminDashboardPage() {
     {
       label: "משתמשים מחוברים",
       value: overview.activeUsers,
-      helper: `${overview.inactiveUsers} מנותקים`,
+      helper: `${overview.bannedUsers} חסומים`,
     },
     {
       label: "הרשמות 7 ימים",
