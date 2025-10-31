@@ -30,9 +30,9 @@ export const userColumns: ColumnDef<AdminUserRow>[] = [
     accessorKey: "role",
     header: "תפקיד",
     cell: ({ row }) => {
-      const role = row.original.role;
-      const variant = role === "ADMIN" ? "default" : "secondary";
-      const label = role === "ADMIN" ? "מנהל" : "משתמש";
+      const isAdmin = row.original.roles.includes("admin");
+      const variant = isAdmin ? "default" : "secondary";
+      const label = isAdmin ? "מנהל" : "משתמש";
       return <Badge variant={variant}>{label}</Badge>;
     },
   },

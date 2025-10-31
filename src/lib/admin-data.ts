@@ -1,16 +1,21 @@
+import { cache } from "react";
+import { headers } from "next/headers";
 import { differenceInDays } from "date-fns";
+import type {
+  SessionWithImpersonatedBy,
+  UserWithRole,
+} from "better-auth/plugins/admin";
 
-import { prisma } from "./prisma";
-import type { Role } from "./prisma";
-
-export type UserRole = Role;
+import { auth } from "./auth";
+import { hasAdminRole, normalizeRoles } from "./admin-roles";
 
 export type AdminUserRow = {
   id: string;
   name: string;
   email: string;
   image: string | null;
-  role: UserRole;
+  role: string;
+  roles: string[];
   banned: boolean;
   banReason: string | null;
   banExpiresAt: string | null;
@@ -50,114 +55,173 @@ export type AdminOverview = {
   averageSessionsPerUser: number;
 };
 
-export async function getAdminUserRows(): Promise<AdminUserRow[]> {
-  const users = await prisma.user.findMany({
-    include: {
-      sessions: {
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+type AdminDataset = {
+  users: UserWithRole[];
+  sessionsByUser: Map<string, SessionWithImpersonatedBy[]>;
+};
 
+function toDate(value: Date | string): Date {
+  return value instanceof Date ? value : new Date(value);
+}
+
+const resolveAdminDataset = cache(async (): Promise<AdminDataset> => {
+  const rawHeaders = await headers();
+  const requestHeaders = Object.fromEntries(rawHeaders.entries());
+
+  try {
+    const { users } = await auth.api.listUsers({
+      headers: requestHeaders,
+      query: {
+        limit: 1000,
+        sortBy: "createdAt",
+        sortDirection: "desc",
+      },
+    });
+
+    const sessionEntries = await Promise.all(
+      users.map(async (user) => {
+        try {
+          const { sessions } = await auth.api.listUserSessions({
+            headers: requestHeaders,
+            body: { userId: user.id },
+          });
+
+          const sortedSessions = [...sessions].sort(
+            (a, b) =>
+              toDate(b.createdAt).getTime() - toDate(a.createdAt).getTime()
+          );
+
+          return [user.id, sortedSessions] as const;
+        } catch (error) {
+          console.error(
+            "Failed to load sessions for user",
+            user.id,
+            error
+          );
+          return [user.id, []] as const;
+        }
+      })
+    );
+
+    return {
+      users,
+      sessionsByUser: new Map(sessionEntries),
+    };
+  } catch (error) {
+    console.error("Failed to load admin dataset", error);
+    return {
+      users: [],
+      sessionsByUser: new Map(),
+    };
+  }
+});
+
+export async function getAdminUserRows(): Promise<AdminUserRow[]> {
+  const { users, sessionsByUser } = await resolveAdminDataset();
   const now = new Date();
 
   return users.map((user) => {
-    const activeSessions = user.sessions.filter(
-      (session) => session.expiresAt > now
+    const userSessions = sessionsByUser.get(user.id) ?? [];
+    const activeSessions = userSessions.filter(
+      (session) => toDate(session.expiresAt) > now
     );
-    const lastSession = user.sessions[0] ?? null;
+    const lastSession = userSessions[0] ?? null;
+    const roles = normalizeRoles(user.role);
+    const primaryRole = roles[0] ?? "user";
+
     return {
       id: user.id,
-      name: user.name,
-      email: user.email,
-      image: user.image,
-      role: user.role as UserRole,
-      banned: user.banned,
+      name: user.name ?? "",
+      email: user.email ?? "",
+      image: user.image ?? null,
+      role: primaryRole,
+      roles,
+      banned: Boolean(user.banned),
       banReason: user.banReason ?? null,
       banExpiresAt: user.banExpires
-        ? user.banExpires.toISOString()
+        ? toDate(user.banExpires).toISOString()
         : null,
-      createdAt: user.createdAt.toISOString(),
-      lastActiveAt: lastSession?.createdAt.toISOString() ?? null,
+      createdAt: toDate(user.createdAt).toISOString(),
+      lastActiveAt: lastSession
+        ? toDate(lastSession.createdAt).toISOString()
+        : null,
       activeSessions: activeSessions.length,
-      totalSessions: user.sessions.length,
+      totalSessions: userSessions.length,
     };
   });
 }
 
 export async function getAdminSessionRows(): Promise<AdminSessionRow[]> {
-  const sessions = await prisma.session.findMany({
-    include: {
-      user: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
-
+  const { users, sessionsByUser } = await resolveAdminDataset();
+  const userMap = new Map(users.map((user) => [user.id, user]));
   const now = new Date();
 
-  return sessions.map((session) => {
-    const status: SessionStatus =
-      session.expiresAt > now ? "ACTIVE" : "EXPIRED";
+  const rows: AdminSessionRow[] = [];
 
-    return {
-      id: session.id,
-      token: session.token,
-      userId: session.userId,
-      userName: session.user?.name ?? "",
-      userEmail: session.user?.email ?? "",
-      userImage: session.user?.image ?? null,
-      status,
-      ipAddress: session.ipAddress ?? null,
-      userAgent: session.userAgent ?? null,
-      createdAt: session.createdAt.toISOString(),
-      updatedAt: session.updatedAt.toISOString(),
-      expiresAt: session.expiresAt.toISOString(),
-    };
-  });
+  for (const [userId, sessions] of sessionsByUser.entries()) {
+    const user = userMap.get(userId);
+
+    for (const session of sessions) {
+      const expiresAt = toDate(session.expiresAt);
+      const createdAt = toDate(session.createdAt);
+      const updatedAt = toDate(session.updatedAt);
+
+      rows.push({
+        id: session.id,
+        token: session.token,
+        userId: session.userId,
+        userName: user?.name ?? "",
+        userEmail: user?.email ?? "",
+        userImage: user?.image ?? null,
+        status: expiresAt > now ? "ACTIVE" : "EXPIRED",
+        ipAddress: session.ipAddress ?? null,
+        userAgent: session.userAgent ?? null,
+        createdAt: createdAt.toISOString(),
+        updatedAt: updatedAt.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+      });
+    }
+  }
+
+  return rows.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 }
 
 export async function getAdminOverview(): Promise<AdminOverview> {
-  const [users, sessions] = await Promise.all([
-    prisma.user.findMany({
-      include: {
-        sessions: true,
-      },
-    }),
-    prisma.session.findMany(),
-  ]);
-
+  const { users, sessionsByUser } = await resolveAdminDataset();
   const now = new Date();
-  const activeSessions = sessions.filter(
-    (session) => session.expiresAt > now
+
+  const allSessions = Array.from(sessionsByUser.values()).flat();
+  const activeSessions = allSessions.filter(
+    (session) => toDate(session.expiresAt) > now
   );
-  const expiredSessions = sessions.length - activeSessions.length;
+  const totalSessions = allSessions.length;
+  const expiredSessions = totalSessions - activeSessions.length;
   const activeUserIds = new Set(activeSessions.map((session) => session.userId));
+
   const totalUsers = users.length;
   const activeUsers = users.filter(
     (user) => !user.banned && activeUserIds.has(user.id)
   ).length;
-  const bannedUsers = users.filter((user) => user.banned).length;
-  const recentSignups = users.filter(
-    (user) => differenceInDays(now, user.createdAt) <= 7
-  ).length;
+  const bannedUsers = users.filter((user) => Boolean(user.banned)).length;
+  const recentSignups = users.filter((user) => {
+    const createdAt = toDate(user.createdAt);
+    return differenceInDays(now, createdAt) <= 7;
+  }).length;
   const averageSessionsPerUser =
-    totalUsers === 0 ? 0 : Number((sessions.length / totalUsers).toFixed(2));
+    totalUsers === 0
+      ? 0
+      : Number((totalSessions / totalUsers).toFixed(2));
 
-  const adminUsers = users.filter((user) => user.role === "ADMIN").length;
+  const adminUsers = users.filter((user) => hasAdminRole(user.role)).length;
   const regularUsers = totalUsers - adminUsers;
 
   return {
     totalUsers,
     adminUsers,
     regularUsers,
-    totalSessions: sessions.length,
+    totalSessions,
     activeSessions: activeSessions.length,
     expiredSessions,
     activeUsers,

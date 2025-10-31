@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { hasAdminRole } from "@/lib/admin-roles";
 
 const createUserSchema = z.object({
   name: z.string().min(2, "שם קצר מדי"),
@@ -14,7 +14,7 @@ const createUserSchema = z.object({
     .string()
     .min(8, "הסיסמה חייבת להכיל לפחות 8 תווים")
     .max(128, "הסיסמה ארוכה מדי"),
-  role: z.enum(["USER", "ADMIN"], {
+  role: z.enum(["user", "admin"], {
     message: "חובה לבחור תפקיד",
   }),
 });
@@ -36,12 +36,13 @@ export type AdminActionResult = {
 };
 
 async function requireAdminSession() {
-  const requestHeaders = await headers();
+  const requestHeadersList = await headers();
+  const requestHeaders = Object.fromEntries(requestHeadersList.entries());
   const session = await auth.api.getSession({
     headers: requestHeaders,
   });
 
-  if (!session || session.user?.role !== "ADMIN" || !session.user?.id) {
+  if (!session || !hasAdminRole(session.user?.role) || !session.user?.id) {
     throw new Error("לא הותרה גישה לפעולה זו");
   }
 
@@ -50,22 +51,36 @@ async function requireAdminSession() {
 
 async function ensureCanDisableTarget(
   currentAdminId: string,
-  targetUserId: string
+  targetUserId: string,
+  requestHeaders: HeadersInit
 ) {
   if (currentAdminId === targetUserId) {
     throw new Error("לא ניתן לחסום את עצמך");
   }
 
-  const targetUser = await prisma.user.findUnique({
-    where: { id: targetUserId },
-    select: { role: true },
-  });
+  let targetUser;
+  try {
+    const response = await auth.api.listUsers({
+      headers: requestHeaders,
+      query: {
+        limit: 1,
+        filterField: "id",
+        filterValue: targetUserId,
+        filterOperator: "eq",
+      },
+    });
+
+    targetUser = response.users[0];
+  } catch (error) {
+    console.error("Failed to resolve target user", targetUserId, error);
+    throw new Error("המשתמש המבוקש לא נמצא");
+  }
 
   if (!targetUser) {
     throw new Error("המשתמש המבוקש לא נמצא");
   }
 
-  if (targetUser.role === "ADMIN") {
+  if (hasAdminRole(targetUser.role)) {
     throw new Error("לא ניתן לחסום מנהלי מערכת אחרים");
   }
 }
@@ -91,10 +106,7 @@ export async function createUserAction(
 
     await auth.api.createUser({
       headers: requestHeaders,
-      body: {
-        ...parsed.data,
-        role: parsed.data.role.toLowerCase() as "user" | "admin",
-      },
+      body: parsed.data,
     });
 
     await refreshAdminData();
@@ -166,7 +178,7 @@ export async function banUserAction(
       };
     }
 
-    await ensureCanDisableTarget(session.user.id, parsed.data.userId);
+    await ensureCanDisableTarget(session.user.id, parsed.data.userId, requestHeaders);
 
     await auth.api.banUser({
       headers: requestHeaders,
@@ -246,7 +258,7 @@ export async function removeUserAction(
       };
     }
 
-    await ensureCanDisableTarget(session.user.id, parsed.data.userId);
+    await ensureCanDisableTarget(session.user.id, parsed.data.userId, requestHeaders);
 
     await auth.api.removeUser({
       headers: requestHeaders,

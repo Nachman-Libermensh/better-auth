@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { routeConfig } from "@/config/routes";
 import { auth } from "@/lib/auth";
+import { hasAdminRole } from "@/lib/admin-roles";
 import { sanitizeCallbackUrl } from "@/lib/utils/callback-url";
 
 function headersToObject(headersList: Headers) {
@@ -23,7 +24,7 @@ export async function requireAdminUser() {
     redirect(`${routeConfig.loginRoute}?callbackUrl=${encodeURIComponent(callbackUrl)}`);
   }
 
-  if (session.user?.role !== "ADMIN") {
+  if (!hasAdminRole(session.user?.role)) {
     redirect(routeConfig.unauthorizedRedirect);
   }
 

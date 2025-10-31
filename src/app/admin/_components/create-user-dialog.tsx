@@ -44,7 +44,7 @@ const formSchema = z.object({
     .string()
     .min(8, "סיסמה חייבת להכיל לפחות 8 תווים")
     .max(128, "הסיסמה ארוכה מדי"),
-  role: z.enum(["USER", "ADMIN"], {
+  role: z.enum(["user", "admin"], {
     message: "יש לבחור תפקיד",
   }),
 });
@@ -59,7 +59,7 @@ export function CreateUserDialog() {
       name: "",
       email: "",
       password: "",
-      role: "USER",
+      role: "user",
     },
   });
 
@@ -77,7 +77,7 @@ export function CreateUserDialog() {
         name: "",
         email: "",
         password: "",
-        role: "USER",
+        role: "user",
       });
       setOpen(false);
     });
@@ -173,8 +173,8 @@ export function CreateUserDialog() {
                         <SelectValue placeholder="בחרו תפקיד" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="USER">משתמש</SelectItem>
-                        <SelectItem value="ADMIN">מנהל</SelectItem>
+                        <SelectItem value="user">משתמש</SelectItem>
+                        <SelectItem value="admin">מנהל</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormControl>

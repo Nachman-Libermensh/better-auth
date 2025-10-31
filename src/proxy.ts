@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { matchRoute, routeConfig } from "@/config/routes";
 import { sanitizeCallbackUrl } from "@/lib/utils/callback-url";
+import { hasAdminRole } from "@/lib/admin-roles";
 
 /**
  * IMPORTANT: This proxy handler fully replaces the legacy `src/middleware.ts`
@@ -50,6 +51,7 @@ export async function proxy(request: NextRequest) {
 
   const hasSession = Boolean(session);
   const userRole = session?.user?.role;
+  const isAdminUser = hasAdminRole(userRole);
 
   if (!hasSession) {
     if (isPublicRoute) {
@@ -80,7 +82,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL(callbackUrl, origin));
   }
 
-  if (isAdminRoute && userRole !== "ADMIN") {
+  if (isAdminRoute && !isAdminUser) {
     return NextResponse.redirect(
       new URL(routeConfig.unauthorizedRedirect, origin)
     );
