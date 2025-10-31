@@ -24,6 +24,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,8 +34,8 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import {
   Table as UiTable,
   TableBody,
@@ -44,6 +45,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { DataGridLoader } from "./data-grid-loader";
 import {
@@ -55,7 +58,7 @@ import {
   DataGridRowAction,
 } from "./types";
 
-import { ArrowUpDown, Check, Filter, MoreHorizontal, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Filter, MoreHorizontal } from "lucide-react";
 import Image from "next/image";
 
 const DEFAULT_EMPTY_VALUE = "-";
@@ -85,6 +88,22 @@ const isSelectableOptionValue = (
   value: unknown
 ): value is string | number | boolean =>
   typeof value === "string" || typeof value === "number" || typeof value === "boolean";
+
+const isSameFilterValue = (a: unknown, b: unknown) => {
+  if (isSelectableOptionValue(a) && isSelectableOptionValue(b)) {
+    return isOptionValueEqual(a, b);
+  }
+
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) {
+      return false;
+    }
+
+    return a.every((item, index) => isSameFilterValue(item, b[index]));
+  }
+
+  return Object.is(a, b);
+};
 
 const findOptionItem = (
   value: unknown,
@@ -291,16 +310,24 @@ const filterFns = {
     return value === filterValue;
   },
   oneOf: <TData,>(row: Row<TData>, columnId: string, filterValue: unknown[]) => {
-    if (!Array.isArray(filterValue) || filterValue.length === 0) {
+    const candidates = Array.isArray(filterValue)
+      ? filterValue
+      : filterValue === undefined || filterValue === null || filterValue === ""
+        ? []
+        : [filterValue];
+
+    if (!candidates.length) {
       return true;
     }
     const value = row.getValue<unknown>(columnId);
 
     if (Array.isArray(value)) {
-      return value.some((item) => filterValue.includes(item));
+      return value.some((item) =>
+        candidates.some((candidate) => isSameFilterValue(candidate, item))
+      );
     }
 
-    return filterValue.includes(value);
+    return candidates.some((candidate) => isSameFilterValue(candidate, value));
   },
   range: <TData,>(row: Row<TData>, columnId: string, filterValue: { min?: number; max?: number }) => {
     if (!filterValue) return true;
@@ -491,7 +518,6 @@ function ColumnFilterInput<TData>({
   column,
   columnDef,
   filterOptions,
-  meta,
 }: DataGridColumnHeaderProps<TData>) {
   if (columnDef.enableFiltering === false) {
     return null;
@@ -499,119 +525,93 @@ function ColumnFilterInput<TData>({
 
   const filterValue = column.getFilterValue();
 
+  const renderOptionsCommand = () => {
+    const optionsList = filterOptions ?? [];
+
+    const normalizedValue = Array.isArray(filterValue)
+      ? filterValue
+      : filterValue === undefined || filterValue === null || filterValue === ""
+        ? []
+        : [filterValue];
+
+    const handleToggle = (value: unknown) => {
+      const exists = normalizedValue.some((item) => isSameFilterValue(item, value));
+      const next = exists
+        ? normalizedValue.filter((item) => !isSameFilterValue(item, value))
+        : [...normalizedValue, value];
+
+      if (!next.length) {
+        column.setFilterValue(undefined);
+        return;
+      }
+
+      const includesAll =
+        optionsList.length > 0 &&
+        optionsList.every((option) => next.some((item) => isSameFilterValue(item, option.value)));
+
+      column.setFilterValue(includesAll ? undefined : next);
+    };
+
+    const hasSelections = normalizedValue.length > 0;
+    const isAllSelected =
+      !hasSelections ||
+      (optionsList.length > 0 &&
+        optionsList.every((option) =>
+          normalizedValue.some((item) => isSameFilterValue(item, option.value))
+        ));
+
+    return (
+      <div className="space-y-2" dir="rtl">
+        <Command className="rounded-lg border">
+          <CommandInput placeholder="חיפוש אפשרויות" />
+          <CommandList>
+            <CommandEmpty>לא נמצאו אפשרויות</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="all"
+                onSelect={() => column.setFilterValue(undefined)}
+                className="flex items-center justify-between gap-2"
+              >
+                <span className="flex-1 text-right">כל האפשרויות</span>
+                <Checkbox checked={isAllSelected} className="pointer-events-none" readOnly />
+              </CommandItem>
+              {optionsList.map((option) => {
+                const isSelected = normalizedValue.some((item) =>
+                  isSameFilterValue(item, option.value)
+                );
+                return (
+                  <CommandItem
+                    key={String(option.value)}
+                    value={String(option.label)}
+                    onSelect={() => handleToggle(option.value)}
+                    className="flex items-center justify-between gap-2"
+                  >
+                    <span className="flex-1 text-right">{option.label}</span>
+                    <Checkbox checked={isSelected} className="pointer-events-none" readOnly />
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </div>
+    );
+  };
+
   switch (columnDef.type) {
     case "text":
     case "text-long":
     case "text-copy":
     case "badge":
-    case "lookup": {
-      return (
-        <Input
-          value={(filterValue as string) ?? ""}
-          onChange={(event) => column.setFilterValue(event.target.value)}
-          placeholder="חיפוש"
-          className="h-8"
-        />
-      );
-    }
+    case "lookup":
     case "options": {
-      const selectedOption = filterOptions?.find((option) =>
-        isSelectableOptionValue(option.value)
-          ? isOptionValueEqual(option.value, filterValue)
-          : false
-      );
-      const hasFilterValue = filterValue !== undefined && filterValue !== null;
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8">
-              {selectedOption ? selectedOption.label : "סינון"}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="max-h-64 w-48 overflow-y-auto">
-            {filterOptions?.map((option) => {
-              const isSelected = isSelectableOptionValue(option.value)
-                ? isOptionValueEqual(option.value, filterValue)
-                : false;
-              return (
-                <DropdownMenuItem
-                  key={String(option.value)}
-                  onSelect={(event) => {
-                    event.preventDefault();
-                    column.setFilterValue(option.value);
-                  }}
-                  className={cn(
-                    "flex items-center justify-between gap-2",
-                    isSelected && "font-semibold"
-                  )}
-                >
-                  <span>{option.label}</span>
-                  {isSelected ? <Check className="h-4 w-4" /> : null}
-                </DropdownMenuItem>
-              );
-            })}
-            {hasFilterValue ? (
-              <>
-                <Separator className="my-1" />
-                <DropdownMenuItem
-                  onSelect={(event) => {
-                    event.preventDefault();
-                    column.setFilterValue(undefined);
-                  }}
-                >
-                  נקה פילטרים
-                </DropdownMenuItem>
-              </>
-            ) : null}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
+      return renderOptionsCommand();
     }
     case "lookup-multi": {
-      const selectedValues = Array.isArray(filterValue) ? filterValue : [];
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8">
-              {selectedValues.length ? `${selectedValues.length} פריטים` : "סינון"}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="max-h-64 w-48 overflow-y-auto">
-            {filterOptions?.map((option) => {
-              const isSelected = selectedValues.includes(option.value);
-              return (
-                <DropdownMenuItem
-                  key={String(option.value)}
-                  onSelect={(event) => {
-                    event.preventDefault();
-                    const next = isSelected
-                      ? selectedValues.filter((val) => val !== option.value)
-                      : [...selectedValues, option.value];
-                    column.setFilterValue(next);
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <Checkbox checked={isSelected} className="pointer-events-none" />
-                  <span>{option.label}</span>
-                </DropdownMenuItem>
-              );
-            })}
-            {selectedValues.length ? (
-              <>
-                <Separator className="my-1" />
-                <DropdownMenuItem
-                  onSelect={(event) => {
-                    event.preventDefault();
-                    column.setFilterValue(undefined);
-                  }}
-                >
-                  נקה פילטרים
-                </DropdownMenuItem>
-              </>
-            ) : null}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
+      return renderOptionsCommand();
+    }
+    case "boolean": {
+      return renderOptionsCommand();
     }
     case "number":
     case "currency": {
@@ -665,30 +665,6 @@ function ColumnFilterInput<TData>({
         </div>
       );
     }
-    case "boolean": {
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8">
-              {filterValue === undefined || filterValue === ""
-                ? "הכל"
-                : getBooleanLabel(filterValue as boolean, meta)}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => column.setFilterValue(true)}>
-              {getBooleanLabel(true, meta)}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => column.setFilterValue(false)}>
-              {getBooleanLabel(false, meta)}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => column.setFilterValue(undefined)}>
-              איפוס
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    }
     default:
       return null;
   }
@@ -701,51 +677,181 @@ function DataGridColumnHeader<TData>({
   meta,
 }: DataGridColumnHeaderProps<TData>) {
   const sorted = column.getIsSorted();
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <Button
-          variant="ghost"
-          className="h-auto px-0 text-right text-sm font-medium"
-          onClick={() => column.toggleSorting(sorted === "asc")}
+  const filterValue = column.getFilterValue();
+  const hasFilterValue = Array.isArray(filterValue)
+    ? filterValue.length > 0
+    : filterValue !== undefined && filterValue !== null && filterValue !== "";
+  const canFilter = columnDef.enableFiltering !== false && column.getCanFilter();
+  const canSort = column.getCanSort();
+  const canInteract = canFilter || canSort;
+
+  const handleSortToggle = (event?: React.MouseEvent) => {
+    if (!canSort) return;
+    event?.preventDefault();
+    event?.stopPropagation();
+
+    if (!sorted) {
+      column.toggleSorting(false);
+      return;
+    }
+
+    if (sorted === "asc") {
+      column.toggleSorting(true);
+      return;
+    }
+
+    column.clearSorting();
+  };
+
+  const renderSortIndicator = () => {
+    if (sorted === "asc") {
+      return <ArrowUp className="h-3.5 w-3.5 text-primary" />;
+    }
+
+    if (sorted === "desc") {
+      return <ArrowDown className="h-3.5 w-3.5 text-primary" />;
+    }
+
+    return null;
+  };
+
+  if (!canInteract) {
+    return (
+      <div className="flex items-center justify-center text-center">
+        <span className="text-sm font-medium">{columnDef.header}</span>
+      </div>
+    );
+  }
+
+  const headerLabel = (
+    <div className="flex items-center justify-center gap-1">
+      {canSort ? (
+        <button
+          type="button"
+          onClick={handleSortToggle}
+          className={cn(
+            "flex items-center gap-1 text-sm font-medium",
+            canSort ? "cursor-pointer hover:text-primary" : "cursor-default"
+          )}
         >
           <span>{columnDef.header}</span>
-          <ArrowUpDown className="ml-2 h-3.5 w-3.5 text-muted-foreground" />
-        </Button>
-        {columnDef.enableFiltering !== false ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <Filter className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">סינון</span>
-                {column.getFilterValue() ? (
+          {renderSortIndicator()}
+        </button>
+      ) : (
+        <span className="text-sm font-medium">{columnDef.header}</span>
+      )}
+    </div>
+  );
+
+  const tooltipLabel =
+    typeof columnDef.header === "string"
+      ? `סינון ${columnDef.header}`
+      : "סינון העמודה";
+
+  return (
+    <div className="flex items-center justify-center gap-1">
+      {headerLabel}
+      {canFilter ? (
+        <Popover>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={hasFilterValue ? "destructive" : "ghost"}
+                  size="icon"
+                  className="h-8 w-8 p-0 text-muted-foreground"
+                  onClick={(event) => event.stopPropagation()}
+                  aria-pressed={hasFilterValue}
+                >
+                  <Filter className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent dir="rtl" sideOffset={8}>
+              {tooltipLabel}
+            </TooltipContent>
+          </Tooltip>
+          <PopoverContent align="center" className="w-80 space-y-4" dir="rtl" sideOffset={8}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium">{columnDef.header}</span>
+              <div className="flex items-center gap-2">
+                {sorted ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2"
+                    onClick={() => column.clearSorting()}
+                  >
+                    איפוס מיון
+                  </Button>
+                ) : null}
+                {hasFilterValue ? (
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-8 px-2"
                     onClick={() => column.setFilterValue(undefined)}
                   >
-                    <X className="mr-1 h-3.5 w-3.5" />
-                    נקה
+                    איפוס סינון
                   </Button>
                 ) : null}
               </div>
-              <div className="mt-3 space-y-2">
-                <ColumnFilterInput
-                  column={column}
-                  columnDef={columnDef}
-                  filterOptions={filterOptions}
-                  meta={meta}
-                />
+            </div>
+            {canSort ? (
+              <div className="space-y-2">
+                <span className="text-xs font-medium text-muted-foreground">אפשרויות מיון</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant={sorted === "asc" ? "default" : "outline"}
+                    size="sm"
+                    className="h-8 flex-1"
+                    onClick={() => {
+                      if (sorted !== "asc") {
+                        column.toggleSorting(false);
+                      }
+                    }}
+                  >
+                    מיון עולה
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={sorted === "desc" ? "default" : "outline"}
+                    size="sm"
+                    className="h-8 flex-1"
+                    onClick={() => {
+                      if (sorted !== "desc") {
+                        column.toggleSorting(true);
+                      }
+                    }}
+                  >
+                    מיון יורד
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 flex-1"
+                    onClick={() => column.clearSorting()}
+                    disabled={!sorted}
+                  >
+                    איפוס
+                  </Button>
+                </div>
               </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
-      </div>
+            ) : null}
+            <div className="space-y-2">
+              <span className="text-xs font-medium text-muted-foreground">אפשרויות סינון</span>
+              <ColumnFilterInput
+                column={column}
+                columnDef={columnDef}
+                filterOptions={filterOptions}
+                meta={meta}
+              />
+            </div>
+          </PopoverContent>
+        </Popover>
+      ) : null}
     </div>
   );
 }
@@ -959,9 +1065,9 @@ export function useDataGridColumns<
             case "text-copy":
             case "lookup":
             case "badge":
-              return filterFns.text;
+              return filterFns.oneOf;
             case "options":
-              return filterFns.exact;
+              return filterFns.oneOf;
             case "lookup-multi":
               return filterFns.oneOf;
             case "boolean":
@@ -973,7 +1079,7 @@ export function useDataGridColumns<
             case "datetime":
               return filterFns.date;
             default:
-              return filterFns.text;
+              return filterFns.oneOf;
           }
         })(),
       } satisfies ColumnDef<TData, unknown>;
